@@ -1,0 +1,209 @@
+cluster_id,caseName,us_cite,volume,scdb_id,source,citation_count,precedential_status,dateFiled,bucket,dedup_role,dup_of
+8403274,Oswald v. New-York,2 U.S. 402,2,,U,0,Published,1792-08-15,REVIEW,duplicate,8403273
+8403131,Resler v. Shehee,5 U.S. 110,5,,U,1,Published,1801-12-15,KEEP,duplicate,84757
+8403132,Turner v. Fendall,5 U.S. 117,5,,U,2,Published,1801-12-15,KEEP,duplicate,84758
+8403133,Clarke v. Bazadone,5 U.S. 212,5,,U,1,Published,1803-02-15,KEEP,duplicate,84762
+8403136,Abercrombie v. Dupuis,5 U.S. 343,5,,U,0,Published,1803-02-15,KEEP,duplicate,2620768
+8403137,Lindo v. Gardner,5 U.S. 343,5,,U,0,Published,1803-02-15,KEEP,duplicate,2620770
+8403134,Fenwick v. Sears's Administrators,5 U.S. 259,5,,U,1,Published,1803-02-25,KEEP,duplicate,84766
+8403135,Marine Insurance Co. of Alexandria v. Young,5 U.S. 332,5,,U,1,Published,1803-03-01,KEEP,duplicate,84773
+6726199,Faw v. Marsteller,6 U.S. 11,6,,U,4,Published,1804-02-14,KEEP,duplicate,84776
+6726198,Wood v. Wagnon,6 U.S. 10,6,,U,0,Published,1804-02-15,KEEP,duplicate,2620814
+6726201,Ogle v. Lee,6 U.S. 33,6,,U,1,Published,1804-02-15,KEEP,duplicate,84777
+6726205,Capron v. Van Noorden,6 U.S. 127,6,,U,1,Published,1804-02-15,KEEP,duplicate,84779
+6726204,Murray v. The Schooner Charming Betsy,6 U.S. 65,6,,U,7,Published,1804-02-22,KEEP,duplicate,84778
+6726207,Head & Amory v. Providence Insurance,6 U.S. 128,6,,U,0,Published,1804-02-25,KEEP,duplicate,84780
+6726209,Little v. Barreme,6 U.S. 171,6,,U,2,Published,1804-02-27,KEEP,duplicate,84781
+6726210,Blakeney v. Evans,6 U.S. 186,6,,U,0,Published,1804-03-01,KEEP,duplicate,84783
+6726213,Church v. Hubbart,6 U.S. 188,6,,U,1,Published,1804-03-05,KEEP,duplicate,84784
+6726216,Mason v. The Ship Blaireau,6 U.S. 241,6,,U,0,Published,1804-03-06,KEEP,duplicate,84785
+6726223,Winchester v. Hackley,6 U.S. 343,6,,U,1,Published,1805-02-15,KEEP,duplicate,84789
+6726226,United States v. Fisher,6 U.S. 359,6,,U,0,Published,1805-02-15,KEEP,duplicate,84791
+6726229,United States v. The Schooner Sally,6 U.S. 406,6,,U,0,Published,1805-02-15,KEEP,duplicate,2620816
+6726230,Bailiff v. Tipping,6 U.S. 406,6,,U,0,Published,1805-02-15,KEEP,duplicate,2620815
+6726231,Telfair v. Stead's Executors,6 U.S. 408,6,,U,5,Published,1805-02-15,KEEP,duplicate,84792
+6726233,Peyton v. Brooke,7 U.S. 92,7,,U,1,Published,1805-02-15,KEEP,duplicate,84797
+6726222,Adams v. Woods,6 U.S. 337,6,,U,1,Published,1805-02-18,KEEP,duplicate,84788
+6726239,United States v. More,7 U.S. 159,7,,U,92,Published,1805-03-02,KEEP,duplicate,84800
+6726241,Faw v. Roberdeau's,7 U.S. 174,7,,U,1,Published,1805-03-02,KEEP,duplicate,84801
+6726235,Levy v. Gadsby,7 U.S. 109,7,,U,0,Published,1805-03-04,KEEP,duplicate,84803
+6726243,Marine Insurance v. Wilson,7 U.S. 187,7,,U,1,Published,1805-03-05,KEEP,duplicate,84804
+6726245,Hallet v. Jenks,7 U.S. 210,7,,U,1,Published,1805-03-06,KEEP,duplicate,84806
+6726246,Milligan v. Milledge,7 U.S. 220,7,,U,1,Published,1805-03-06,KEEP,duplicate,84807
+6726248,Cooke v. Graham's Administrator,7 U.S. 229,7,,U,1,Published,1805-03-06,KEEP,duplicate,84808
+6726249,Dobynes v. United States,7 U.S. 241,7,,U,1,Published,1806-02-15,KEEP,duplicate,84809
+6726250,Montalet v. Murray,7 U.S. 249,7,,U,0,Published,1806-02-15,KEEP,duplicate,2429586
+6726262,Ex parte Burford,7 U.S. 448,7,,U,1,Published,1806-02-15,KEEP,duplicate,84827
+6726265,Lawrason v. Mason,7 U.S. 492,7,,U,1,Published,1806-02-15,KEEP,duplicate,84830
+6726266,Sands v. Knox,7 U.S. 499,7,,U,1,Published,1806-02-15,KEEP,duplicate,84832
+6726270,Field v. Milton,7 U.S. 514,7,,U,0,Published,1806-02-15,KEEP,duplicate,2429567
+6726273,Winchester v. Jackson,7 U.S. 514,7,,U,0,Published,1806-02-15,KEEP,duplicate,2432524
+6726255,Harris v. Johnston,7 U.S. 311,7,,U,11,Published,1806-02-19,KEEP,duplicate,84819
+6726257,Dixon's Executors v. Ramsay's Executors,7 U.S. 319,7,,U,1,Published,1806-02-19,KEEP,duplicate,84820
+6726258,Scott v. London,7 U.S. 324,7,,U,1,Published,1806-02-19,KEEP,duplicate,84821
+6726254,Buddicum v. Kirk,7 U.S. 293,7,,U,1,Published,1806-03-01,KEEP,duplicate,84816
+6726263,Hopkirk v. Bell,7 U.S. 454,7,,U,1,Published,1806-03-04,KEEP,duplicate,84828
+6726275,United States v. Kid,8 U.S. 1,8,,U,1,Published,1807-02-15,KEEP,duplicate,84834
+6726282,Pendleton v. Wambersie,8 U.S. 73,8,,U,1,Published,1807-02-15,KEEP,duplicate,84841
+6726283,Skillern's executors v. May's executors,8 U.S. 137,8,,U,1,Published,1807-02-15,KEEP,duplicate,84843
+6726294,Diggs v. Wolcott,8 U.S. 179,8,,U,1,Published,1807-02-15,KEEP,duplicate,84851
+6726287,Hicks v. Rogers,8 U.S. 165,8,,U,1,Published,1807-02-23,KEEP,duplicate,84846
+6726285,Hopkirk v. Bell,8 U.S. 164,8,,U,1,Published,1807-02-28,KEEP,duplicate,84845
+8670059,United States v. Cantrill,8 U.S. 167,8,,U,1,Published,1807-02-28,KEEP,duplicate,84847
+6726301,Young v. Preston,8 U.S. 239,8,,U,1,Published,1808-02-15,KEEP,duplicate,84860
+6726305,United States v. McDowell,8 U.S. 316,8,,U,1,Published,1808-02-15,KEEP,duplicate,84865
+6726311,Shearman v. Irvine's Lessee,8 U.S. 367,8,,U,1,Published,1808-02-15,KEEP,duplicate,84872
+6726316,Matthews v. Zane,8 U.S. 382,8,,U,1,Published,1808-02-15,KEEP,duplicate,84874
+6726324,Ex parte Lewis,8 U.S. 433,8,,U,1,Published,1808-02-15,KEEP,duplicate,84881
+6726328,United States v. The Schooner Betsey & Charlotte,8 U.S. 443,8,,U,1,Published,1808-02-15,KEEP,duplicate,84883
+6726303,Chappedelaine v. Dechenaux,8 U.S. 306,8,,U,1,Published,1808-03-04,KEEP,duplicate,84864
+6726306,Mayor of Alexandria v. Patten,8 U.S. 317,8,,U,1,Published,1808-03-07,KEEP,duplicate,84866
+6726309,Mountz v. Hodgson,8 U.S. 324,8,,U,1,Published,1808-03-08,KEEP,duplicate,84868
+6726317,Young v. Bank of Alexandria,8 U.S. 384,8,,U,6,Published,1808-03-12,KEEP,duplicate,84875
+6726321,Stead's executors v. Course,8 U.S. 403,8,,U,1,Published,1808-03-14,KEEP,duplicate,84878
+6726300,Grant v. Naylor,8 U.S. 224,8,,U,1,Published,1808-03-29,KEEP,duplicate,84858
+6726334,Mandeville & Jamesson v. Wilson,9 U.S. 15,9,,U,1,Published,1809-02-15,KEEP,duplicate,84887
+6726337,Young v. Bank of Alexandria,9 U.S. 45,9,,U,1,Published,1809-02-15,KEEP,duplicate,84891
+6726342,Hope Insurance v. Boardman,9 U.S. 57,9,,U,1,Published,1809-02-15,KEEP,duplicate,84893
+6726346,Matthews v. Zane's Lessee,9 U.S. 92,9,,U,1,Published,1809-02-15,KEEP,duplicate,84895
+6726353,Kempe's Lessee v. Kennedy,9 U.S. 173,9,,U,2,Published,1809-02-15,KEEP,duplicate,84900
+6726354,Marine Insurance v. Young,9 U.S. 187,9,,U,1,Published,1809-02-15,KEEP,duplicate,84901
+6726359,United States v. Patterson,9 U.S. 257,9,,U,1,Published,1809-02-15,KEEP,duplicate,84904
+6726364,United States v. Evans,9 U.S. 280,9,,U,1,Published,1809-02-15,KEEP,duplicate,84906
+6726367,Rush v. Parker,9 U.S. 287,9,,U,1,Published,1809-02-15,KEEP,duplicate,84909
+6726371,Logan v. Patrick,9 U.S. 288,9,,U,1,Published,1809-02-15,KEEP,duplicate,84910
+6726381,Dulany v. Hodgkin,9 U.S. 333,9,,U,1,Published,1809-02-15,KEEP,duplicate,84917
+6726383,Yeaton v. Fry,9 U.S. 335,9,,U,3,Published,1809-02-15,KEEP,duplicate,84918
+6726388,Moss v. Riddle & Co.,9 U.S. 351,9,,U,1,Published,1809-02-15,KEEP,duplicate,84920
+6726390,Auld v. Norwood,9 U.S. 361,9,,U,1,Published,1809-02-15,KEEP,duplicate,84922
+6726392,Slacum v. Simms & Wise,9 U.S. 363,9,,U,1,Published,1809-02-15,KEEP,duplicate,84923
+6726393,United States v. Vowell & M'Clean,9 U.S. 368,9,,U,1,Published,1809-02-15,KEEP,duplicate,84924
+6726395,Sally v. United States,9 U.S. 372,9,,U,1,Published,1809-02-15,KEEP,duplicate,84925
+6726398,Ex parte Wilson,10 U.S. 52,10,,U,1,Published,1810-02-15,KEEP,duplicate,84930
+6726402,Riddle & Co. v. Mandeville & Jamesson,10 U.S. 86,10,,U,1,Published,1810-02-15,KEEP,duplicate,84934
+6726411,Stewart v. Anderson,10 U.S. 203,10,,U,0,Published,1810-02-15,KEEP,duplicate,84943
+6726415,Lodge's Lessee v. Lee,10 U.S. 237,10,,U,1,Published,1810-02-15,KEEP,duplicate,84948
+6726419,De Butts v. Bacon,10 U.S. 252,10,,U,1,Published,1810-02-15,KEEP,duplicate,84950
+6726426,Tyler v. Tuel,10 U.S. 324,10,,U,1,Published,1810-02-15,KEEP,duplicate,84958
+6726427,Schooner Juliana v. United States,10 U.S. 327,10,,U,1,Published,1810-02-15,KEEP,duplicate,84959
+6726428,Schooner Rachel v. United States,10 U.S. 329,10,,U,1,Published,1810-02-15,KEEP,duplicate,84960
+6726429,Brigantine Amiable Lucy v. United States,10 U.S. 330,10,,U,1,Published,1810-02-15,KEEP,duplicate,84961
+6726407,M'Knight v. Craig's Administrator,10 U.S. 183,10,,U,1,Published,1810-02-19,KEEP,duplicate,84939
+6726408,Kennedy v. Brent,10 U.S. 187,10,,U,1,Published,1810-02-28,KEEP,duplicate,84940
+6726405,United States v. Hall & Worth,10 U.S. 171,10,,U,2,Published,1810-03-03,KEEP,duplicate,84937
+6726413,Slacum v. Pomery,10 U.S. 221,10,,U,2,Published,1810-03-05,KEEP,duplicate,84945
+1119427,Atkinson v. Mutual Assurance Soc. Against Fire on Buildings of Va.,10 U.S. 202,10,,LU,1,Published,1810-03-17,KEEP,duplicate,84942
+6726432,Hudson & Smith Guestier,11 U.S. 1,11,,U,1,Published,1812-02-03,KEEP,duplicate,84964
+6726439,Bingham v. Morris,11 U.S. 99,11,,U,0,Published,1812-02-18,KEEP,duplicate,2490153
+2490321,"Hawthorne, Clamn't. of Brig Clarissa Claiborne v. United States",11 U.S. 107,11,,L,1,Published,1812-02-20,KEEP,duplicate,84973
+6726435,Wells v. U. States,11 U.S. 22,11,,U,1,Published,1812-02-20,KEEP,duplicate,84966
+6726442,Whelan v. United States,11 U.S. 112,11,,U,1,Published,1812-02-20,KEEP,duplicate,84975
+6726453,Davy's Executors v. Faw,11 U.S. 171,11,,U,1,Published,1812-03-03,KEEP,duplicate,84985
+6726452,King v. Riddle,11 U.S. 168,11,,U,1,Published,1812-03-04,KEEP,duplicate,84984
+6726443,United States v. Brig Eliza,11 U.S. 113,11,,U,1,Published,1812-03-05,KEEP,duplicate,84976
+6726446,Welch v. Mandeville,11 U.S. 152,11,,U,1,Published,1812-03-05,KEEP,duplicate,84980
+6726457,Wilson v. Koontz,11 U.S. 202,11,,U,1,Published,1812-03-10,KEEP,duplicate,84988
+6726471,Wallen v. Williams,11 U.S. 278,11,,U,1,Published,1812-03-13,KEEP,duplicate,84996
+6726475,Beatty v. Maryland,11 U.S. 281,11,,U,1,Published,1812-03-13,KEEP,duplicate,84998
+6726456,Barton v. Petit,11 U.S. 194,11,,U,1,Published,1812-03-14,KEEP,duplicate,84987
+6726460,Sheehy v. Mandeville,11 U.S. 208,11,,U,3,Published,1812-03-14,KEEP,duplicate,84990
+6726463,Dunlop v. Munroe,11 U.S. 242,11,,U,3,Published,1812-03-14,KEEP,duplicate,84992
+6726470,Blackwell v. Patten,11 U.S. 277,11,,U,1,Published,1812-03-14,KEEP,duplicate,84995
+6726473,M'Kim v. Voorhies,11 U.S. 279,11,,U,1,Published,1812-03-14,KEEP,duplicate,84997
+6726477,United States v. Gordon,11 U.S. 287,11,,U,1,Published,1813-02-10,KEEP,duplicate,85000
+6726485,Schooner Good Catharine v. United States,11 U.S. 349,11,,U,1,Published,1813-02-19,KEEP,duplicate,85008
+6726488,Preston v. Tremble,11 U.S. 354,11,,U,1,Published,1813-02-23,KEEP,duplicate,85010
+6726489,Brig Penobscot v. United States,11 U.S. 356,11,,U,1,Published,1813-02-23,KEEP,duplicate,85011
+6726509,Brig Caroline v. United States,11 U.S. 496,11,,U,1,Published,1813-02-24,KEEP,duplicate,85031
+6726495,Cargo of Brig Aurora v. United States,11 U.S. 382,11,,U,3,Published,1813-02-26,KEEP,duplicate,85016
+6726496,Mutual Assurance Society v. Korn,11 U.S. 396,11,,U,1,Published,1813-03-03,KEEP,duplicate,85018
+6726499,Maryland Insurance v. Wood,11 U.S. 402,11,,U,1,Published,1813-03-03,KEEP,duplicate,85020
+6726501,Stark v. Chesapeake Insurance,11 U.S. 420,11,,U,1,Published,1813-03-08,KEEP,duplicate,85023
+2490086,Smith v. Delaware Insurance,11 U.S. 434,11,,LU,3,Published,1813-03-09,KEEP,duplicate,85025
+6726511,Palmer v. Allen,11 U.S. 550,11,,U,1,Published,1813-03-16,KEEP,duplicate,85036
+6726514,Livingston v. Dorgenois,11 U.S. 577,11,,U,1,Published,1813-03-16,KEEP,duplicate,85041
+6726518,Wallen v. Williams,11 U.S. 602,11,,U,1,Published,1813-03-17,KEEP,duplicate,85044
+6726521,Griffith v. Frazier,12 U.S. 8,12,,U,0,Published,1814-02-15,KEEP,duplicate,85046
+6726523,Van Ness v. Forrest,12 U.S. 31,12,,U,0,Published,1814-02-15,KEEP,duplicate,85047
+6726553,Vowles v. Craig,12 U.S. 371,12,,U,1,Published,1814-02-15,KEEP,duplicate,85075
+6726528,Common Council v. Preston,12 U.S. 53,12,,U,1,Published,1814-02-19,KEEP,duplicate,85051
+6726529,McCall v. Marine Insurance,12 U.S. 59,12,,U,1,Published,1814-02-21,KEEP,duplicate,85053
+6726536,Beatty' administrators v. Burnes's administrators,12 U.S. 98,12,,U,1,Published,1814-03-01,KEEP,duplicate,85060
+85073,The Frances,12 U.S. 348,12,1814-029,LRU,4,Published,1814-03-12,KEEP,duplicate,1394601
+1394575,The Frances,12 U.S. 354,12,1814-030,LU,1,Published,1814-03-12,KEEP,duplicate,1394601
+1394610,The Frances,12 U.S. 335,12,,LU,4,Published,1814-03-12,KEEP,duplicate,1394601
+6726549,The Frances,12 U.S. 358,12,,U,0,Published,1814-03-12,KEEP,duplicate,1394601
+6726567,Alexander v. Pendleton,12 U.S. 462,12,,U,1,Published,1814-03-12,KEEP,duplicate,85087
+6726550,The Frances,12 U.S. 359,12,,U,6,Published,1814-03-15,KEEP,duplicate,1394601
+8403138,Arnold v. United States,13 U.S. 104,13,,U,4,Published,1815-02-23,KEEP,duplicate,85101
+8403139,United States v. Bryan,13 U.S. 374,13,,U,1,Published,1815-03-11,KEEP,duplicate,85125
+6726577,Anderson v. Longden,14 U.S. 85,14,,U,1,Published,1816-02-15,KEEP,duplicate,85137
+6726583,The Antonia Johanna,14 U.S. 159,14,,U,2,Published,1816-02-15,KEEP,duplicate,85147
+6726620,The Bothnea,15 U.S. 169,15,,U,2,Published,1817-02-20,KEEP,duplicate,85187
+6726622,Laidlaw v. Organ,15 U.S. 178,15,,U,1,Published,1817-02-20,KEEP,duplicate,85188
+6726627,United States v. Tenbroek,15 U.S. 248,15,,U,1,Published,1817-03-01,KEEP,duplicate,85193
+6726642,United States v. Barker,15 U.S. 395,15,,U,1,Published,1817-03-15,KEEP,duplicate,85211
+85186,The Fortuna— Krause,15 U.S. 161,15,,R,1,Published,1817-03-17,KEEP,duplicate,2527082
+8403391,The New-York,16 U.S. 59,16,,U,23,Published,1818-02-05,KEEP,duplicate,85217
+8403390,The Diana,16 U.S. 58,16,,U,9,Published,1818-02-10,KEEP,duplicate,85216
+1101162,The Samuel,16 U.S. 36,16,,L,1,Published,1818-02-11,KEEP,duplicate,85218
+8403392,The Samuel,16 U.S. 77,16,,U,1,Published,1818-02-11,KEEP,duplicate,85218
+8403389,The Friendschaft,16 U.S. 14,16,,U,0,Published,1818-02-15,KEEP,duplicate,85214
+8403393,The Star,16 U.S. 78,16,,U,3,Published,1818-02-16,KEEP,duplicate,1101108
+8403394,Lanusse v. Barker,16 U.S. 101,16,,U,17,Published,1818-02-17,KEEP,duplicate,85220
+1101126,Houston v. Moore,16 U.S. 200,16,1818-014,L,2,Published,1818-02-19,KEEP,duplicate,85236
+8403395,Dugan v. United States,16 U.S. 172,16,,U,110,Published,1818-02-19,KEEP,duplicate,85223
+8403396,Shepherd v. Hampton,16 U.S. 200,16,,U,27,Published,1818-02-19,KEEP,duplicate,85225
+8403397,Patton v. Nicholson,16 U.S. 204,16,,U,20,Published,1818-02-19,KEEP,duplicate,85226
+8403402,United States v. Bevans,16 U.S. 336,16,,U,117,Published,1818-02-21,KEEP,duplicate,85233
+8403398,Robinson v. Campbell,16 U.S. 212,16,,U,122,Published,1818-02-24,KEEP,duplicate,85227
+8403399,United States v. 150 Crates of Earthen Ware,16 U.S. 232,16,,U,20,Published,1818-02-24,KEEP,duplicate,85229
+8403400,The Fortuna,16 U.S. 236,16,,U,4,Published,1818-02-26,KEEP,duplicate,85231
+8403401,Gelston v. Hoyt,16 U.S. 246,16,,U,143,Published,1818-02-27,KEEP,duplicate,85232
+8403404,The Anne,16 U.S. 435,16,,U,45,Published,1818-03-07,KEEP,duplicate,85237
+8403405,Evans v. Eaton,16 U.S. 454,16,,U,56,Published,1818-03-07,KEEP,duplicate,85239
+8403406,Lenox v. Prout,16 U.S. 520,16,,U,33,Published,1818-03-09,KEEP,duplicate,85240
+8403407,Murray's Lessee v. Baker,16 U.S. 541,16,,U,1,Published,1818-03-09,KEEP,duplicate,85242
+8403408,The Amiable Nancy,16 U.S. 546,16,,U,156,Published,1818-03-11,KEEP,duplicate,85243
+8403409,Craig v. Leslie,16 U.S. 563,16,,U,262,Published,1818-03-11,KEEP,duplicate,85244
+8403411,Craig v. Radford,16 U.S. 594,16,,U,5,Published,1818-03-12,KEEP,duplicate,85246
+8403412,Ross v. Triplett,16 U.S. 600,16,,U,1,Published,1818-03-12,KEEP,duplicate,85247
+8403414,United States v. Palmer,16 U.S. 610,16,,U,255,Published,1818-03-14,KEEP,duplicate,85249
+8403410,Cameron v. M'Roberts,16 U.S. 591,16,,U,8,Published,1818-07-01,KEEP,duplicate,85245
+8403413,The Neptune,16 U.S. 601,16,,U,3,Published,1818-07-01,KEEP,duplicate,85248
+6726649,The Divina Pastora,17 U.S. 52,17,,U,3,Published,1819-02-15,KEEP,duplicate,85251
+6726651,Evans v. Phillips,17 U.S. 73,17,,U,8,Published,1819-02-15,KEEP,duplicate,85252
+6726654,Van Ness v. Buel,17 U.S. 74,17,,U,2,Published,1819-02-15,KEEP,duplicate,85253
+6726657,Weightman v. Caldwell,17 U.S. 85,17,,U,23,Published,1819-02-15,KEEP,duplicate,85256
+6726658,The Sybil,17 U.S. 98,17,,U,52,Published,1819-02-15,KEEP,duplicate,85257
+6726660,The Caledonian,17 U.S. 100,17,,U,12,Published,1819-02-15,KEEP,duplicate,85258
+6726662,The Friendschaft,17 U.S. 105,17,,U,1,Published,1819-02-15,KEEP,duplicate,85260
+6726664,United States v. Howland,17 U.S. 108,17,,U,9,Published,1819-02-15,KEEP,duplicate,85261
+6726666,Sturges v. Crowninshield,17 U.S. 122,17,,U,65,Published,1819-02-15,KEEP,duplicate,85262
+6726669,M'Millan v. M'Neill,17 U.S. 209,17,,U,1,Published,1819-02-15,KEEP,duplicate,85263
+6726673,Eliason v. Henshaw,17 U.S. 225,17,,U,13,Published,1819-02-15,KEEP,duplicate,85265
+6726675,Bank of Columbia v. Okely,17 U.S. 235,17,,U,46,Published,1819-02-15,KEEP,duplicate,85267
+6726678,United States v. Rice,17 U.S. 246,17,,U,10,Published,1819-02-15,KEEP,duplicate,85268
+6726679,Brown v. Gilman,17 U.S. 255,17,,U,15,Published,1819-02-15,KEEP,duplicate,85269
+6726687,The General Smith,17 U.S. 438,17,,U,28,Published,1819-02-15,KEEP,duplicate,85273
+6726692,Orr v. Hodgson,17 U.S. 453,17,,U,11,Published,1819-02-15,KEEP,duplicate,85275
+6726696,Astor v. Wells,17 U.S. 466,17,,U,2,Published,1819-02-15,KEEP,duplicate,85276
+6726698,M'Arthur v. Browder,17 U.S. 488,17,,U,1,Published,1819-02-15,KEEP,duplicate,85277
+6726707,Trustees of Dartmouth College v. Woodward,17 U.S. 518,17,,U,467,Published,1819-02-15,KEEP,duplicate,85282
+6726714,M'Clung v. Ross,18 U.S. 116,18,,U,52,Published,1820-02-14,KEEP,duplicate,85285
+6726712,United States v. Wiltberger,18 U.S. 76,18,,U,894,Published,1820-02-18,KEEP,duplicate,85284
+6726722,United States v. Smith,18 U.S. 153,18,,U,185,Published,1820-02-25,KEEP,duplicate,85289
+1087976,United States v. Furlong,18 U.S. 86,18,,L,63,Published,1820-03-01,KEEP,duplicate,85290
+6726729,Stevenson's Heirs v. Sullivant,18 U.S. 207,18,,U,10,Published,1820-03-04,KEEP,duplicate,85291
+6726733,Perkins v. Ramsey,18 U.S. 269,18,,U,13,Published,1820-03-06,KEEP,duplicate,85292
+6726735,Mandeville v. Welch,18 U.S. 277,18,,U,155,Published,1820-03-07,KEEP,duplicate,85293
+6726736,Wallace v. Anderson,18 U.S. 291,18,,U,18,Published,1820-03-08,KEEP,duplicate,85294
+6726739,Loughborough v. Blake,18 U.S. 317,18,,U,88,Published,1820-03-10,KEEP,duplicate,85297
+6726743,Blake v. Doherty,18 U.S. 359,18,,U,47,Published,1820-03-13,KEEP,duplicate,85300
+6726741,The Josefa Segunda,18 U.S. 338,18,,U,1,Published,1820-03-14,KEEP,duplicate,85299
+6726748,Lyle v. Rodgers,18 U.S. 394,18,,U,26,Published,1820-03-15,KEEP,duplicate,85303
+6726750,United States v. Holmes,18 U.S. 412,18,,U,15,Published,1820-03-15,KEEP,duplicate,85304
+6726751,Owings v. Speed,18 U.S. 420,18,,U,49,Published,1820-03-16,KEEP,duplicate,85305
+6726753,Conn v. Penn,18 U.S. 424,18,,U,20,Published,1820-03-16,KEEP,duplicate,85306
+6726755,Campbell v. Pratt,18 U.S. 429,18,,U,4,Published,1820-03-16,KEEP,duplicate,85307
+6726757,United States v. Lancaster,18 U.S. 434,18,,U,0,Published,1820-03-17,KEEP,duplicate,85309

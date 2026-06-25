@@ -4,6 +4,11 @@ The automated filter routed 206 clusters to REVIEW (Dallas vols 1–4, no `scdb_
 This is the manual adjudication of that bucket. **Goal of the pass: catch false
 negatives — genuine SCOTUS decisions wrongly excluded.**
 
+> **Note (post-dedup):** the dataset was later regenerated from the `clusters`
+> endpoint with duplicate-cluster removal; REVIEW is now **205** canonical records
+> (one was a duplicate). The adjudication below is unchanged — all REVIEW records
+> are non-SCOTUS, and no genuine decision was wrongly excluded.
+
 ## Result
 
 | Disposition | Count | Meaning |

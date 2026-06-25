@@ -4,48 +4,58 @@ Tools and data for building a clean corpus of **U.S. Supreme Court decisions, 17
 
 ## The problem
 
-A raw `court=scotus` query to CourtListener for 1790–1820 returns **1,076 opinion clusters** — but not all of them are Supreme Court cases. The early *U.S. Reports* (Dallas reporters, vols 2–4) reprinted Pennsylvania state-court and lower federal (circuit) cases alongside genuine SCOTUS decisions, and CourtListener tags them all as `scotus`.
+Building a clean SCOTUS census from CourtListener has **two** pitfalls:
 
-## The filter rule
+1. **Non-SCOTUS cases.** The early *U.S. Reports* (Dallas reporters, vols 2–4) reprinted Pennsylvania state-court and lower federal (circuit) cases alongside genuine SCOTUS decisions; CourtListener tags them all `scotus`.
+2. **Duplicate clusters.** CourtListener's 2025 Harvard Caselaw Access Project import (`source = "U"`) was only partially merged, leaving ~200 early cases with an unmerged duplicate cluster (often a wrong page number and no `scdb_id`).
 
-Validated against known cases (e.g. *Chisholm v. Georgia*, *Ware v. Hylton*, *Calder v. Bull* all carry SCDB IDs; the Pennsylvania reprints do not):
+Together these inflate a naïve `docket__court=scotus` pull for 1790–1820 to **1,076 clusters**, of which only ~660 are distinct Supreme Court decisions.
 
-> **KEEP** if the U.S. reporter volume is **≥ 5** (Cranch/Wheaton onward = exclusively SCOTUS) **OR** the cluster has a non-empty **`scdb_id`** (present only on cases catalogued in the Supreme Court Database).
->
-> **REVIEW** otherwise (vol 1–4 *and* no `scdb_id`) — almost all Pennsylvania/circuit reprints, plus a small residue of genuine-SCOTUS items the SCDB does not catalog (administrative orders, seriatim opinion fragments). REVIEW is the **human-check** bucket, not an automatic discard.
+## Method
+
+**Source:** the database-backed `clusters` endpoint (not `search`, which the docs call the relevance-ranked, non-canonical view), fetched one year at a time with structured `citations`.
+
+**1. SCOTUS filter** — validated against known cases (*Chisholm*, *Ware v. Hylton*, *Calder v. Bull* carry SCDB IDs; PA/circuit reprints do not):
+
+> **KEEP** if U.S. reporter volume **≥ 5** (Cranch/Wheaton onward = exclusively SCOTUS) **OR** the cluster has a non-empty **`scdb_id`**. **REVIEW** otherwise — see [REVIEW_NOTES.md](scotus_filter/REVIEW_NOTES.md) (all non-SCOTUS; 0 genuine decisions wrongly excluded).
+
+**2. De-duplication** — collapse clusters of the same case (transitively) by: identical *(normalized name, year)*, **or** identical U.S. citation + ≥0.5 name-token overlap. Keep the best record (prefer `scdb_id`, then a merged / non-`U` source, then citation count). Companion cases that merely share a starting page have ~zero name overlap and are correctly kept distinct.
 
 ## Results (1790–1820)
 
 | Bucket | Count |
 |--------|------:|
-| KEEP   | 870   |
-| REVIEW | 206   |
-| **Total** | **1,076** |
+| **KEEP** (distinct SCOTUS decisions) | **663** |
+| REVIEW (non-SCOTUS) | 205 |
+| duplicates removed | 208 |
+| **Total clusters** | **1,076** |
 
-Integrity: KEEP + REVIEW = 1,076; zero rule violations; KEEP spans Dallas vols 2–4 (62 genuine early-SCOTUS cases with SCDB IDs) plus the full Cranch (5–13) and Wheaton (14–18) runs.
+**Validation:** the 663 per-year counts track [Wikipedia's annual SCOTUS decision totals](https://en.wikipedia.org/wiki/Number_of_U.S._Supreme_Court_cases_decided_by_year) closely — 647 total (+16), most years exact or ±1. The residual is the 1791 term-vs-calendar attribution (−4) and genuine companion-case granularity. Run `--validate` to reproduce the comparison. All landmark cases retained (Marbury, McCulloch, Martin v. Hunter, Dartmouth, Gibbons, Fletcher).
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `scotus_filter/scotus_ingest.py` | Reusable ingestion: pulls `court=scotus` for any date range, paginates with throttle/timeout backoff, applies the filter, writes the CSVs. |
-| `scotus_filter/all_clusters.csv` | All 1,076 clusters with bucket + reason. |
-| `scotus_filter/keep.csv` | The 870 confirmed/high-confidence SCOTUS cases. |
-| `scotus_filter/review.csv` | The 206 candidates to verify before dropping. |
+| `scotus_filter/scotus_ingest.py` | Reusable ingestion: clusters endpoint → SCOTUS filter → dedup → CSVs (+`--validate`). |
+| `scotus_filter/all_clusters.csv` | All 1,076 clusters with `bucket`, `source`, `dedup_role`, `dup_of`. |
+| `scotus_filter/keep.csv` | The 663 distinct SCOTUS decisions. |
+| `scotus_filter/review.csv` | The 205 non-SCOTUS canonical records. |
+| `scotus_filter/duplicates.csv` | The 208 dropped duplicates, each with its `dup_of` canonical id. |
+| `scotus_filter/REVIEW_NOTES.md`, `review_dispositions.csv` | Human adjudication of the REVIEW bucket. |
 | `scotus_filter/bucket.py`, `scotus_filter/page_*.json` | Superseded bootstrap (manual sample used to derive the rule); kept for provenance. |
 
 ## Usage
 
 ```bash
 cd scotus_filter
-python3 scotus_ingest.py                          # default 1790-01-01 .. 1820-12-31
+python3 scotus_ingest.py --validate               # default 1790-01-01 .. 1820-12-31
 python3 scotus_ingest.py --after 1790-01-01 --before 1835-12-31
-python3 scotus_ingest.py --from-cache             # reprocess cached raw data, no refetch
+python3 scotus_ingest.py --from-cache --validate  # reprocess cached raw data, no refetch
 ```
 
-Anonymous access works but is rate-limited. The script reads a CourtListener API
-token from the `COURTLISTENER_API_TOKEN` environment variable when present and
-sends it as `Authorization: Token <key>`.
+The `clusters` endpoint **requires authentication**. The script reads a CourtListener
+API token from the `COURTLISTENER_API_TOKEN` environment variable and sends it as
+`Authorization: Token <key>`.
 
 This project manages that token with [agentsecrets](https://github.com/The-17/agentsecrets)
 (zero-knowledge: the value is injected into the child process and never printed).
@@ -62,5 +72,6 @@ after which `--from-cache` reprocesses instantly without any network calls.
 
 - [x] Filter rule derived and validated
 - [x] Full 1790–1820 enumeration and classification
-- [ ] Human review pass over the 206 REVIEW candidates
-- [ ] Full-text retrieval for the confirmed-SCOTUS set
+- [x] Human review pass over the REVIEW candidates (all non-SCOTUS; see REVIEW_NOTES.md)
+- [x] De-duplication + validation against the historical annual record
+- [ ] Full-text retrieval for the 663 confirmed-SCOTUS decisions
