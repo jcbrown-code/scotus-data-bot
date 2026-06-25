@@ -7,3 +7,7 @@ __pycache__/
 
 # raw API cache (regenerable; can be large)
 scotus_filter/raw_clusters.json
+
+# secrets
+*.token
+.env
