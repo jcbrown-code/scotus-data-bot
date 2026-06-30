@@ -11,3 +11,6 @@ scotus_filter/raw_clusters.json
 # secrets
 *.token
 .env
+
+# bulk opinion text (regenerable via fetch_text.py)
+scotus_filter/fulltext/
