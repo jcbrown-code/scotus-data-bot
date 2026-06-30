@@ -1,13 +1,18 @@
 # SCOTUS corpus ETL — common tasks.
 # Network stages need a token: prefix with `agentsecrets env --` (e.g. `make ingest`).
 
-PY ?= python3
+# Use the project venv's Python automatically when it exists (no `activate` needed),
+# else fall back to python3. Override with `make <target> PY=/path/to/python`.
+# Python tools are always invoked as `$(PY) -m <module>` so they never depend on a
+# console script being on PATH.
+PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 DB ?= data/processed/scotus.sqlite
 DSN ?=
 
-.PHONY: ingest clusters db test inspect serve dist pg clean help
+.PHONY: setup ingest clusters db test inspect serve dist pg clean help
 
 help:
+	@echo "make setup    - create .venv and install dev deps (pytest, datasette)"
 	@echo "make ingest   - full pipeline (clusters + text + load)   [needs token]"
 	@echo "make clusters - reprocess cached clusters, no network     (--from-cache)"
 	@echo "make db       - build the SQLite database from staging files"
@@ -16,6 +21,12 @@ help:
 	@echo "make serve    - open the database in Datasette (browser UI)"
 	@echo "make dist     - gzip the DB + write SHA256SUMS (release artifact)"
 	@echo "make pg DSN=postgres://... - load the same schema into Postgres"
+
+setup:
+	python3 -m venv .venv
+	.venv/bin/python -m pip install --upgrade pip
+	.venv/bin/python -m pip install -r requirements-dev.txt
+	@echo "venv ready at .venv — make targets now use it automatically"
 
 ingest:
 	agentsecrets env -- $(PY) -m src.pipeline --stage all --validate
@@ -33,7 +44,7 @@ inspect:
 	sqlite3 $(DB) < db/inspect.sql
 
 serve:
-	datasette $(DB)
+	$(PY) -m datasette $(DB)
 
 dist:
 	gzip -kf $(DB)

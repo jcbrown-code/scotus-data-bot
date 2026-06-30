@@ -5,6 +5,8 @@
 # python
 __pycache__/
 *.pyc
+.venv/
+venv/
 
 # data: raw API dumps + processed staging are local-only / regenerable
 data/
