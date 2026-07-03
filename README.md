@@ -1,5 +1,7 @@
 # scotus-data-bot
 
+[![CI](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml)
+
 An ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
 Court decisions, 1790–1820** from the [CourtListener](https://www.courtlistener.com/)
 API and loads it into a lightweight, queryable **SQLite database**.
@@ -111,3 +113,9 @@ asset** (`scotus.sqlite.gz`, ~7 MB) rather than committed.
 - [x] Human review of the REVIEW bucket (all non-SCOTUS)
 - [x] Full-text retrieval for all 663 decisions
 - [x] ETL restructure + SQLite database with FTS, tests, and inspection
+- [x] Packaging (pyproject), ruff lint/format, 80% coverage, CI
+
+## License
+
+Code is released under the [MIT License](LICENSE). The underlying court opinions are
+U.S. government works in the public domain.
