@@ -123,3 +123,63 @@ def test_classify_filter_rule():
     ]
     by_id = {r["cluster_id"]: r["bucket"] for r in t.classify(raw)}
     assert by_id == {1: "KEEP", 2: "KEEP", 3: "REVIEW"}
+
+
+def test_us_cite_none_when_no_us_reporter():
+    assert t.us_cite([]) == (None, "")
+    assert t.us_cite([{"reporter": "L. Ed.", "volume": "1", "page": "1"}]) == (None, "")
+
+
+def test_assign_dedup_marks_roles():
+    """assign_dedup dedups within each bucket and tags canonical/duplicate + dup_of."""
+    raw = [
+        {
+            "id": 10,
+            "case_name": "Lindo v. Gardner",
+            "date_filed": "1803-02-28",
+            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
+            "scdb_id": "1803-014",
+            "source": "L",
+            "citation_count": 5,
+        },
+        {
+            "id": 8403137,
+            "case_name": "Lindo v. Gardner",
+            "date_filed": "1803-02-15",
+            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
+            "scdb_id": "",
+            "source": "U",
+            "citation_count": 0,
+        },
+        {
+            "id": 3,
+            "case_name": "Respublica v. X",
+            "date_filed": "1790-08-01",
+            "citations": [{"reporter": "U.S.", "volume": "2", "page": "55"}],
+            "scdb_id": "",
+            "source": "L",
+            "citation_count": 0,
+        },
+    ]
+    roles = {
+        r["cluster_id"]: (r["bucket"], r["dedup_role"], r["dup_of"])
+        for r in t.assign_dedup(t.classify(raw))
+    }
+    assert roles[10] == ("KEEP", "canonical", "")
+    assert roles[8403137] == ("KEEP", "duplicate", 10)
+    assert roles[3] == ("REVIEW", "canonical", "")
+
+
+def test_opinion_record():
+    op = {
+        "id": 5,
+        "type": "010combined",
+        "author_str": "",
+        "extracted_by_ocr": False,
+        "html_with_citations": "<p>Hi &amp; bye</p>",
+    }
+    rec = t.opinion_record(op)
+    assert rec["opinion_id"] == 5
+    assert rec["text_source"] == "html_with_citations"
+    assert rec["char_count"] == len("<p>Hi &amp; bye</p>")
+    assert rec["text"] == "Hi & bye"
