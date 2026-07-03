@@ -12,7 +12,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "datasette>=0.64"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "ruff>=0.6", "datasette>=0.64"]
 postgres = ["psycopg[binary]>=3.1"]
 
 [project.scripts]
@@ -27,3 +27,17 @@ packages = ["config", "src"]
 # work whether or not the project is installed (editable install also provides this).
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]  # pycodestyle errors/warnings, pyflakes, import sorting
+
+[tool.coverage.run]
+source = ["src", "config"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true

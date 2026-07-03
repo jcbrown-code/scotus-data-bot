@@ -11,6 +11,7 @@ Network stages need COURTLISTENER_API_TOKEN; run via:
 Reprocess without network (data already cached on disk):
     python -m src.pipeline --stage all --from-cache --validate
 """
+
 import argparse
 import csv
 import json
@@ -19,7 +20,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import extract, transform, load
+from src import extract, load, transform
 
 
 def _write_csv(path, cols, rows):
@@ -52,11 +53,13 @@ def stage_clusters(from_cache=False, validate=False):
     _write_csv(settings.ALL_CLUSTERS_CSV, cols, recs)
     _write_csv(settings.REVIEW_CSV, cols, review)
     _write_csv(settings.DUPLICATES_CSV, cols, dupes)
-    _write_csv(settings.KEEP_CSV, cols, keep)          # committed snapshot
+    _write_csv(settings.KEEP_CSV, cols, keep)  # committed snapshot
 
-    print(f"clusters={len(recs)} keep={len(keep)} review={len(review)} "
-          f"duplicates={len(dupes)} (Harvard-U dupes "
-          f"{sum(1 for d in dupes if d['source']=='U')})")
+    print(
+        f"clusters={len(recs)} keep={len(keep)} review={len(review)} "
+        f"duplicates={len(dupes)} (Harvard-U dupes "
+        f"{sum(1 for d in dupes if d['source'] == 'U')})"
+    )
     if validate:
         _validate(keep)
     return keep
@@ -68,9 +71,10 @@ def _validate(keep):
     tc = tw = 0
     for y in range(1791, 1821):
         c, w = yk.get(y, 0), settings.WIKI_ANNUAL[y]
-        tc += c; tw += w
-        print(f"{y} | {c:>4} | {w:>4} | {c-w:+d}")
-    print(f"TOT  | {tc:>4} | {tw:>4} | {tc-tw:+d}")
+        tc += c
+        tw += w
+        print(f"{y} | {c:>4} | {w:>4} | {c - w:+d}")
+    print(f"TOT  | {tc:>4} | {tw:>4} | {tc - tw:+d}")
 
 
 def stage_text(limit=0):
@@ -102,9 +106,14 @@ def stage_text(limit=0):
         ops = [transform.opinion_record(o) for o in api_ops]
         total = sum(o["char_count"] for o in ops)
         rec = {
-            "cluster_id": cid, "caseName": r["caseName"], "us_cite": r["us_cite"],
-            "dateFiled": r["dateFiled"], "scdb_id": r.get("scdb_id", ""),
-            "source": r.get("source", ""), "n_opinions": len(ops), "total_chars": total,
+            "cluster_id": cid,
+            "caseName": r["caseName"],
+            "us_cite": r["us_cite"],
+            "dateFiled": r["dateFiled"],
+            "scdb_id": r.get("scdb_id", ""),
+            "source": r.get("source", ""),
+            "n_opinions": len(ops),
+            "total_chars": total,
             "text_sources": ";".join(sorted({o["text_source"] for o in ops if o["text_source"]})),
             "opinions": ops,
         }
@@ -114,6 +123,7 @@ def stage_text(limit=0):
         if i % 25 == 0 or limit:
             print(f"  [{i}/{len(rows)}] {cid} {r['caseName'][:32]} chars={total}", file=sys.stderr)
         import time
+
         time.sleep(extract.PACE["delay"])
 
     _write_csv(settings.MANIFEST_CSV, settings.MANIFEST_COLS, manifest)  # committed snapshot
@@ -133,7 +143,9 @@ def stage_load():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", choices=["clusters", "text", "load", "all"], default="all")
-    ap.add_argument("--from-cache", action="store_true", help="reprocess cached clusters, no network")
+    ap.add_argument(
+        "--from-cache", action="store_true", help="reprocess cached clusters, no network"
+    )
     ap.add_argument("--validate", action="store_true", help="compare per-year KEEP vs Wikipedia")
     ap.add_argument("--limit", type=int, default=0, help="text stage: only first N clusters")
     args = ap.parse_args()

@@ -28,3 +28,8 @@ SHA256SUMS
 *.egg-info/
 build/
 dist/
+
+# coverage
+.coverage
+.coverage.*
+htmlcov/

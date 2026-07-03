@@ -9,14 +9,17 @@ PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 DB ?= data/processed/scotus.sqlite
 DSN ?=
 
-.PHONY: setup ingest clusters db test inspect serve dist pg clean help
+.PHONY: setup ingest clusters db test cov lint format inspect serve dist pg clean help
 
 help:
-	@echo "make setup    - create .venv and install dev deps (pytest, datasette)"
+	@echo "make setup    - create .venv and install dev deps (pytest, ruff, datasette)"
 	@echo "make ingest   - full pipeline (clusters + text + load)   [needs token]"
 	@echo "make clusters - reprocess cached clusters, no network     (--from-cache)"
 	@echo "make db       - build the SQLite database from staging files"
 	@echo "make test     - run unit + data-quality tests"
+	@echo "make cov      - run tests with a coverage report"
+	@echo "make lint     - ruff lint checks"
+	@echo "make format   - apply ruff formatting"
 	@echo "make inspect  - print a human-readable completeness report"
 	@echo "make serve    - open the database in Datasette (browser UI)"
 	@echo "make dist     - gzip the DB + write SHA256SUMS (release artifact)"
@@ -39,6 +42,15 @@ db:
 
 test:
 	$(PY) -m pytest tests/ -v
+
+cov:
+	$(PY) -m pytest tests/ --cov=src --cov=config --cov-report=term-missing
+
+lint:
+	$(PY) -m ruff check src config tests
+
+format:
+	$(PY) -m ruff format src config tests
 
 inspect:
 	sqlite3 $(DB) < db/inspect.sql

@@ -9,11 +9,13 @@ De-duplication: CourtListener's 2025 Harvard CAP import (source "U") left many e
                 (union-find) by (a) identical normalized-name + year, or (b) identical
                 U.S. citation + name-token overlap >= 0.5. Keep the best record.
 """
+
 import html
 import re
 from collections import defaultdict
 
 # ---- citation helpers ------------------------------------------------------
+
 
 def us_cite(citations):
     """Return (volume:int|None, 'V U.S. P') from the U.S. reporter citation object."""
@@ -29,6 +31,7 @@ def us_cite(citations):
 
 _US_CITE_RE = re.compile(r"^\s*(\d+)\s+U\.S\.\s+(\S+)")
 
+
 def parse_us_cite(us_cite_str):
     """Split a 'V U.S. P' string into (volume:int|None, page:str|None)."""
     m = _US_CITE_RE.match(us_cite_str or "")
@@ -42,6 +45,7 @@ def parse_us_cite(us_cite_str):
 
 # ---- case-identity helpers (de-dup) ----------------------------------------
 
+
 def norm_name(n):
     """Normalize a case name so a Harvard duplicate matches its canonical record."""
     n = (n or "").lower().replace("the ", " ").replace("trustees of ", " ")
@@ -52,16 +56,19 @@ def norm_name(n):
 
 _STOP = {"v", "the", "of", "a", "and", "et", "al"}
 
+
 def _toks(n):
     return set(w for w in re.sub(r"[^a-z0-9 ]", " ", (n or "").lower()).split() if w not in _STOP)
 
 
 def quality(x):
     """Rank records of the same case; the max is the canonical one to keep."""
-    return (1 if x["scdb_id"] else 0,           # prefer SCDB-catalogued record
-            0 if x["source"] == "U" else 1,      # prefer merged / non-Harvard-only
-            x["citation_count"],                 # prefer more-cited
-            -int(x["cluster_id"]))               # prefer oldest (lowest) id
+    return (
+        1 if x["scdb_id"] else 0,  # prefer SCDB-catalogued record
+        0 if x["source"] == "U" else 1,  # prefer merged / non-Harvard-only
+        x["citation_count"],  # prefer more-cited
+        -int(x["cluster_id"]),
+    )  # prefer oldest (lowest) id
 
 
 def dedup(records):
@@ -115,24 +122,27 @@ def dedup(records):
 
 # ---- record builders -------------------------------------------------------
 
+
 def classify(raw_rows):
     """Raw cluster dicts (clusters endpoint) -> records with the KEEP/REVIEW bucket."""
     recs = []
     for r in raw_rows:
         vol, cite = us_cite(r.get("citations"))
         scdb = (r.get("scdb_id") or "").strip()
-        recs.append({
-            "cluster_id": r["id"],
-            "caseName": r.get("case_name", ""),
-            "us_cite": cite,
-            "volume": vol if vol is not None else "",
-            "scdb_id": scdb,
-            "source": r.get("source", ""),
-            "citation_count": r.get("citation_count") or 0,
-            "precedential_status": r.get("precedential_status", ""),
-            "dateFiled": r.get("date_filed", "") or "",
-            "bucket": "KEEP" if (scdb or (vol is not None and vol >= 5)) else "REVIEW",
-        })
+        recs.append(
+            {
+                "cluster_id": r["id"],
+                "caseName": r.get("case_name", ""),
+                "us_cite": cite,
+                "volume": vol if vol is not None else "",
+                "scdb_id": scdb,
+                "source": r.get("source", ""),
+                "citation_count": r.get("citation_count") or 0,
+                "precedential_status": r.get("precedential_status", ""),
+                "dateFiled": r.get("date_filed", "") or "",
+                "bucket": "KEEP" if (scdb or (vol is not None and vol >= 5)) else "REVIEW",
+            }
+        )
     return recs
 
 
