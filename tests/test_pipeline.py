@@ -5,36 +5,6 @@ import json
 from config import settings
 from src import pipeline
 
-RAW = [
-    {
-        "id": 10,
-        "case_name": "Lindo v. Gardner",
-        "date_filed": "1803-02-28",
-        "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
-        "scdb_id": "1803-014",
-        "source": "L",
-        "citation_count": 5,
-    },
-    {
-        "id": 8403137,
-        "case_name": "Lindo v. Gardner",
-        "date_filed": "1803-02-15",
-        "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
-        "scdb_id": "",
-        "source": "U",
-        "citation_count": 0,
-    },
-    {
-        "id": 3,
-        "case_name": "Respublica v. X",
-        "date_filed": "1790-08-01",
-        "citations": [{"reporter": "U.S.", "volume": "2", "page": "55"}],
-        "scdb_id": "",
-        "source": "L",
-        "citation_count": 0,
-    },
-]
-
 
 def test_write_csv(tmp_path):
     p = tmp_path / "out.csv"
@@ -50,9 +20,9 @@ def test_validate_prints_total(capsys):
     assert "TOT" in capsys.readouterr().out
 
 
-def test_stage_clusters_from_cache(tmp_path, monkeypatch):
+def test_stage_clusters_from_cache(tmp_path, monkeypatch, sample_raw_clusters):
     raw_path = tmp_path / "raw.json"
-    raw_path.write_text(json.dumps(RAW))
+    raw_path.write_text(json.dumps(sample_raw_clusters))
     monkeypatch.setattr(settings, "ensure_dirs", lambda: None)
     monkeypatch.setattr(settings, "RAW_CLUSTERS", str(raw_path))
     for attr in ("ALL_CLUSTERS_CSV", "REVIEW_CSV", "DUPLICATES_CSV", "KEEP_CSV"):

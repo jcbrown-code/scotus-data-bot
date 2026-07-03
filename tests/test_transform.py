@@ -1,29 +1,91 @@
 """Unit tests for the pure cleaning/transform logic (no network, no DB)."""
 
+import pytest
+
 from src import transform as t
 
 
-def test_us_cite_ignores_lexis():
-    """The structured U.S. cite is chosen; a 'U.S. LEXIS' entry never yields a volume."""
-    cites = [
-        {"reporter": "U.S. LEXIS", "volume": "1810", "page": "350"},
-        {"reporter": "L. Ed.", "volume": "3", "page": "240"},
-        {"reporter": "U.S.", "volume": "10", "page": "332"},
+@pytest.mark.parametrize(
+    "citations, expected",
+    [
+        # the structured U.S. cite is chosen; a 'U.S. LEXIS' entry never yields a volume
+        (
+            [
+                {"reporter": "U.S. LEXIS", "volume": "1810", "page": "350"},
+                {"reporter": "L. Ed.", "volume": "3", "page": "240"},
+                {"reporter": "U.S.", "volume": "10", "page": "332"},
+            ],
+            (10, "10 U.S. 332"),
+        ),
+        ([{"reporter": "L. Ed.", "volume": "1", "page": "1"}], (None, "")),  # no U.S. reporter
+        ([], (None, "")),  # no citations at all
+    ],
+)
+def test_us_cite(citations, expected):
+    assert t.us_cite(citations) == expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("2 U.S. 112", (2, "112")),
+        ("17 U.S. 316", (17, "316")),
+        ("", (None, None)),
+        ("not a cite", (None, None)),
+    ],
+)
+def test_parse_us_cite(text, expected):
+    assert t.parse_us_cite(text) == expected
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        ("The New-York", "The New York"),  # hyphen + article
+        ("M'Culloch v. Maryland", "McCulloch v. Maryland"),  # m' -> mc
+    ],
+)
+def test_norm_name_variants_match(a, b):
+    assert t.norm_name(a) == t.norm_name(b)
+
+
+@pytest.mark.parametrize(
+    "raw_html, expected",
+    [
+        ("<p>Hello &amp; <b>world</b></p>", "Hello & world"),
+        ("<div>a<br>b</div>", "a b"),
+    ],
+)
+def test_strip_html(raw_html, expected):
+    assert t.strip_html(raw_html) == expected
+
+
+@pytest.mark.parametrize(
+    "volume, scdb_id, expected_bucket",
+    [
+        ("6", "", "KEEP"),  # vol >= 5 (Cranch)
+        ("2", "1793-001", "KEEP"),  # Dallas w/ scdb id
+        ("2", "", "REVIEW"),  # vol < 5, no scdb id
+    ],
+)
+def test_classify_filter_rule(volume, scdb_id, expected_bucket):
+    raw = [
+        {
+            "id": 1,
+            "case_name": "Some Case",
+            "date_filed": "1800-01-01",
+            "citations": [{"reporter": "U.S.", "volume": volume, "page": "1"}],
+            "scdb_id": scdb_id,
+            "source": "L",
+            "citation_count": 0,
+        }
     ]
-    vol, cite = t.us_cite(cites)
-    assert vol == 10
-    assert cite == "10 U.S. 332"
+    assert t.classify(raw)[0]["bucket"] == expected_bucket
 
 
-def test_parse_us_cite():
-    assert t.parse_us_cite("2 U.S. 112") == (2, "112")
-    assert t.parse_us_cite("17 U.S. 316") == (17, "316")
-    assert t.parse_us_cite("") == (None, None)
-
-
-def test_norm_name_variants_match():
-    assert t.norm_name("The New-York") == t.norm_name("The New York")
-    assert t.norm_name("M'Culloch v. Maryland").startswith("mcculloch")
+def test_best_text_prefers_html_with_citations():
+    src, raw = t.best_text({"html_with_citations": "<p>rich</p>", "plain_text": "plain"})
+    assert (src, raw) == ("html_with_citations", "<p>rich</p>")
 
 
 def test_dedup_collapses_harvard_duplicate():
@@ -80,93 +142,14 @@ def test_dedup_keeps_companion_cases():
     assert dup_of == {}
 
 
-def test_strip_html():
-    assert t.strip_html("<p>Hello &amp; <b>world</b></p>") == "Hello & world"
-
-
-def test_best_text_prefers_html_with_citations():
-    op = {"html_with_citations": "<p>rich</p>", "plain_text": "plain"}
-    src, raw = t.best_text(op)
-    assert src == "html_with_citations"
-    assert raw == "<p>rich</p>"
-
-
-def test_classify_filter_rule():
-    raw = [
-        {
-            "id": 1,
-            "case_name": "Cranch case",
-            "date_filed": "1805-02-01",
-            "citations": [{"reporter": "U.S.", "volume": "6", "page": "1"}],
-            "scdb_id": "",
-            "source": "L",
-            "citation_count": 0,
-        },  # vol>=5 -> KEEP
-        {
-            "id": 2,
-            "case_name": "Dallas SCOTUS",
-            "date_filed": "1793-02-19",
-            "citations": [{"reporter": "U.S.", "volume": "2", "page": "419"}],
-            "scdb_id": "1793-001",
-            "source": "L",
-            "citation_count": 0,
-        },  # scdb -> KEEP
-        {
-            "id": 3,
-            "case_name": "Respublica v. X",
-            "date_filed": "1790-08-01",
-            "citations": [{"reporter": "U.S.", "volume": "2", "page": "55"}],
-            "scdb_id": "",
-            "source": "L",
-            "citation_count": 0,
-        },  # vol<5, no scdb -> REVIEW
-    ]
-    by_id = {r["cluster_id"]: r["bucket"] for r in t.classify(raw)}
-    assert by_id == {1: "KEEP", 2: "KEEP", 3: "REVIEW"}
-
-
-def test_us_cite_none_when_no_us_reporter():
-    assert t.us_cite([]) == (None, "")
-    assert t.us_cite([{"reporter": "L. Ed.", "volume": "1", "page": "1"}]) == (None, "")
-
-
-def test_assign_dedup_marks_roles():
+def test_assign_dedup_marks_roles(sample_raw_clusters):
     """assign_dedup dedups within each bucket and tags canonical/duplicate + dup_of."""
-    raw = [
-        {
-            "id": 10,
-            "case_name": "Lindo v. Gardner",
-            "date_filed": "1803-02-28",
-            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
-            "scdb_id": "1803-014",
-            "source": "L",
-            "citation_count": 5,
-        },
-        {
-            "id": 8403137,
-            "case_name": "Lindo v. Gardner",
-            "date_filed": "1803-02-15",
-            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
-            "scdb_id": "",
-            "source": "U",
-            "citation_count": 0,
-        },
-        {
-            "id": 3,
-            "case_name": "Respublica v. X",
-            "date_filed": "1790-08-01",
-            "citations": [{"reporter": "U.S.", "volume": "2", "page": "55"}],
-            "scdb_id": "",
-            "source": "L",
-            "citation_count": 0,
-        },
-    ]
     roles = {
         r["cluster_id"]: (r["bucket"], r["dedup_role"], r["dup_of"])
-        for r in t.assign_dedup(t.classify(raw))
+        for r in t.assign_dedup(t.classify(sample_raw_clusters))
     }
     assert roles[10] == ("KEEP", "canonical", "")
-    assert roles[8403137] == ("KEEP", "duplicate", 10)
+    assert roles[8403137] == ("KEEP", "duplicate", 10)  # Harvard copy collapsed
     assert roles[3] == ("REVIEW", "canonical", "")
 
 
