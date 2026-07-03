@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scotus-data-bot"
+version = "2.0.0"
+description = "ETL pipeline for a clean, de-duplicated, full-text corpus of U.S. Supreme Court decisions (1790-1820) from CourtListener."
+readme = "README.md"
+requires-python = ">=3.10"
+# Runtime uses the Python standard library only (sqlite3, urllib, csv, json).
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "datasette>=0.64"]
+postgres = ["psycopg[binary]>=3.1"]
+
+[project.scripts]
+scotus-pipeline = "src.pipeline:main"
+scotus-load = "src.load:main"
+
+[tool.setuptools]
+packages = ["config", "src"]
+
+[tool.pytest.ini_options]
+# Make the repo root importable so `from config import ...` / `from src import ...`
+# work whether or not the project is installed (editable install also provides this).
+pythonpath = ["."]
+testpaths = ["tests"]

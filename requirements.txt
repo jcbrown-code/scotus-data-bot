@@ -1,8 +1,0 @@
-# Runtime dependencies.
-#
-# The default SQLite pipeline uses the Python standard library only (sqlite3, urllib,
-# csv, json) — nothing to install.
-#
-# Optional: the Postgres load target needs psycopg. Install it only if you use
-# `--target postgres`:
-#   psycopg[binary]>=3.1

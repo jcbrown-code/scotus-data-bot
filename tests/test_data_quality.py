@@ -2,10 +2,6 @@
 
 These confirm the corpus is complete and internally consistent — the machine-checked
 counterpart to eyeballing the data in Datasette / `make inspect`."""
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import settings
 from src import transform as t
 

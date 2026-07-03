@@ -23,3 +23,8 @@ SHA256SUMS
 
 # pytest
 .pytest_cache/
+
+# python packaging build artifacts
+*.egg-info/
+build/
+dist/

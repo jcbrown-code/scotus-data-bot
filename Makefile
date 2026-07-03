@@ -25,7 +25,7 @@ help:
 setup:
 	python3 -m venv .venv
 	.venv/bin/python -m pip install --upgrade pip
-	.venv/bin/python -m pip install -r requirements-dev.txt
+	.venv/bin/python -m pip install -e ".[dev]"
 	@echo "venv ready at .venv — make targets now use it automatically"
 
 ingest:

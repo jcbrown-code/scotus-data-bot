@@ -1,8 +1,4 @@
 """Unit tests for the pure cleaning/transform logic (no network, no DB)."""
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src import transform as t
 
 
