@@ -5,6 +5,8 @@
 # python
 __pycache__/
 *.pyc
+.venv/
+venv/
 
 # data: raw API dumps + processed staging are local-only / regenerable
 data/
@@ -21,3 +23,13 @@ SHA256SUMS
 
 # pytest
 .pytest_cache/
+
+# python packaging build artifacts
+*.egg-info/
+build/
+dist/
+
+# coverage
+.coverage
+.coverage.*
+htmlcov/

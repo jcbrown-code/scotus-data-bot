@@ -6,6 +6,7 @@ Two endpoints, two access patterns:
 - opinions: filtered by exact cluster=<id> only (no batch/era filter exists), so text is
   pulled one cluster at a time with adaptive pacing to stay under the rate limit.
 """
+
 import json
 import sys
 import time
@@ -14,10 +15,14 @@ import urllib.parse
 import urllib.request
 
 CLUSTERS = "https://www.courtlistener.com/api/rest/v4/clusters/"
-CLUSTER_FIELDS = "id,case_name,date_filed,scdb_id,source,citations,citation_count,precedential_status"
+CLUSTER_FIELDS = (
+    "id,case_name,date_filed,scdb_id,source,citations,citation_count,precedential_status"
+)
 
 OPINIONS = "https://www.courtlistener.com/api/rest/v4/opinions/"
-OPINION_FIELDS = "id,type,author_str,extracted_by_ocr,html_with_citations,plain_text,xml_harvard,html"
+OPINION_FIELDS = (
+    "id,type,author_str,extracted_by_ocr,html_with_citations,plain_text,xml_harvard,html"
+)
 
 # Adaptive pacing for the per-cluster opinion fetch: a steady delay between requests,
 # auto-raised on each 429 so the run settles just under CourtListener's short-window
@@ -41,8 +46,10 @@ def _get(url, headers, timeout=60, pace=False):
                 wait = int(e.headers.get("Retry-After", "30"))
                 if pace:
                     PACE["delay"] = min(PACE["delay"] + 0.5, 4.0)
-                    print(f"    throttled (429), waiting {wait}s; pace now {PACE['delay']}s",
-                          file=sys.stderr)
+                    print(
+                        f"    throttled (429), waiting {wait}s; pace now {PACE['delay']}s",
+                        file=sys.stderr,
+                    )
                 else:
                     print(f"  throttled (429), waiting {wait}s...", file=sys.stderr)
                 time.sleep(wait + 1)
@@ -63,10 +70,18 @@ def fetch_clusters(after, before, token, pause=0.3):
     for year in range(y0, y1 + 1):
         lo = max(after, f"{year}-01-01")
         hi = min(before, f"{year}-12-31")
-        url = CLUSTERS + "?" + urllib.parse.urlencode({
-            "docket__court": "scotus", "date_filed__gte": lo,
-            "date_filed__lte": hi, "fields": CLUSTER_FIELDS,
-        })
+        url = (
+            CLUSTERS
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "docket__court": "scotus",
+                    "date_filed__gte": lo,
+                    "date_filed__lte": hi,
+                    "fields": CLUSTER_FIELDS,
+                }
+            )
+        )
         n0 = len(rows)
         while url:
             data = _get(url, headers)
@@ -84,6 +99,8 @@ def fetch_clusters(after, before, token, pause=0.3):
 
 def fetch_opinions(cluster_id, headers):
     """Return the raw opinion API objects for one cluster (adaptively paced)."""
-    url = OPINIONS + "?" + urllib.parse.urlencode({"cluster": cluster_id, "fields": OPINION_FIELDS})
+    url = (
+        OPINIONS + "?" + urllib.parse.urlencode({"cluster": cluster_id, "fields": OPINION_FIELDS})
+    )
     data = _get(url, headers, timeout=90, pace=True)
     return data.get("results", [])

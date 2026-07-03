@@ -1,11 +1,44 @@
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import settings
 from src import load
+
+
+@pytest.fixture
+def sample_raw_clusters():
+    """Three raw clusters (clusters-endpoint shape): a canonical KEEP, its unmerged
+    Harvard 'U' duplicate (same case), and a REVIEW case. Shared across tests."""
+    return [
+        {
+            "id": 10,
+            "case_name": "Lindo v. Gardner",
+            "date_filed": "1803-02-28",
+            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
+            "scdb_id": "1803-014",
+            "source": "L",
+            "citation_count": 5,
+        },
+        {
+            "id": 8403137,
+            "case_name": "Lindo v. Gardner",
+            "date_filed": "1803-02-15",
+            "citations": [{"reporter": "U.S.", "volume": "5", "page": "343"}],
+            "scdb_id": "",
+            "source": "U",
+            "citation_count": 0,
+        },
+        {
+            "id": 3,
+            "case_name": "Respublica v. X",
+            "date_filed": "1790-08-01",
+            "citations": [{"reporter": "U.S.", "volume": "2", "page": "55"}],
+            "scdb_id": "",
+            "source": "L",
+            "citation_count": 0,
+        },
+    ]
 
 
 @pytest.fixture(scope="session")

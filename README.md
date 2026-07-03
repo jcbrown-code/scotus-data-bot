@@ -1,5 +1,7 @@
 # scotus-data-bot
 
+[![CI](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml)
+
 An ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
 Court decisions, 1790–1820** from the [CourtListener](https://www.courtlistener.com/)
 API and loads it into a lightweight, queryable **SQLite database**.
@@ -38,6 +40,7 @@ Dartmouth, Gibbons, Fletcher).
 ## Repository layout
 
 ```
+pyproject.toml         package metadata + deps (extras: [dev], [postgres]) + entry points
 config/settings.py     paths + env (token, date range, DB path)
 src/extract.py         CourtListener API: clusters + opinions (auth, pagination, pacing)
 src/transform.py       filter + dedup + citation parse + HTML strip   (stdlib; unit-tested)
@@ -48,6 +51,21 @@ data/                  GITIGNORED: raw API dumps + processed staging + the .sqli
 db/inspect.sql         human-readable completeness report (`make inspect`)
 tests/                 unit tests (transforms) + data-quality tests (loaded DB)
 ```
+
+## Install
+
+Runtime is stdlib-only; the package is installed editable to get the dev tools + console
+entry points. `make setup` creates a `.venv` and installs everything:
+
+```bash
+make setup                       # python -m venv .venv && pip install -e ".[dev]"
+# or manually, in your own environment:
+pip install -e ".[dev]"          # pytest + datasette;  add [postgres] for the Postgres target
+```
+
+Installing exposes the `scotus-pipeline` and `scotus-load` console commands, and lets
+`from config import …` / `from src import …` resolve without any `sys.path` juggling. The
+`make` targets auto-use `.venv/bin/python` when present — no `activate` needed.
 
 ## Usage
 
@@ -65,7 +83,8 @@ make serve           # browse/query/visualize in Datasette
 make dist            # gzip the DB + SHA256SUMS (release artifact)
 ```
 
-Equivalently, e.g.: `agentsecrets env -- python -m src.pipeline --stage all --validate`.
+Equivalently via the console entry point (or `python -m src.pipeline`):
+`agentsecrets env -- scotus-pipeline --stage all --validate`.
 
 ## The database
 
@@ -94,3 +113,9 @@ asset** (`scotus.sqlite.gz`, ~7 MB) rather than committed.
 - [x] Human review of the REVIEW bucket (all non-SCOTUS)
 - [x] Full-text retrieval for all 663 decisions
 - [x] ETL restructure + SQLite database with FTS, tests, and inspection
+- [x] Packaging (pyproject), ruff lint/format, 80% coverage, CI
+
+## License
+
+Code is released under the [MIT License](LICENSE). The underlying court opinions are
+U.S. government works in the public domain.
