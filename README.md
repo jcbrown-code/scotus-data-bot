@@ -115,6 +115,12 @@ asset** (`scotus.sqlite.gz`, ~7 MB) rather than committed.
 - [x] ETL restructure + SQLite database with FTS, tests, and inspection
 - [x] Packaging (pyproject), ruff lint/format, 80% coverage, CI
 
+## Contributing
+
+New here? See **[CONTRIBUTING.md](CONTRIBUTING.md)** for developer onboarding — setup, the
+architecture/data-flow map, the dev workflow (ruff, tests, CI, commit conventions), and how to
+extend the corpus.
+
 ## License
 
 Code is released under the [MIT License](LICENSE). The underlying court opinions are
