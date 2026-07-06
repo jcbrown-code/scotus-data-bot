@@ -1,15 +1,14 @@
 # Contributing / Developer onboarding
 
-Welcome! This guide gets a new developer productive on **scotus-data-bot**. For *what* the
-project produces and *why*, read the [README](README.md) first; this doc covers *how to work
-on it*.
+New developer environment setup and onboarding for **scotus-data-bot**. High level project 
+project info can be found in the [README](README.md). 
 
 ## 1. Prerequisites
 
 - **Python 3.10+**, `git`, and `sqlite3` (preinstalled on macOS).
 - Optional: [`gh`](https://cli.github.com/) (releases/PRs), `datasette` (installed by `make setup`).
-- **A CourtListener API token** — only needed to *fetch* from the API (the network stages).
-  You do **not** need it to work on the transforms, the loader, the database, or the tests.
+- **A CourtListener API token** — only used to *fetch* from the API (the network stages).
+  You do **not** need it to work on the transforms, the loader, the database, or the tests
 
 ## 2. Setup
 
@@ -26,7 +25,7 @@ exposes the `scotus-pipeline` / `scotus-load` console commands. The `make` targe
 
 ### Getting the data
 
-The corpus (`data/`) is **gitignored** — it isn't in the repo. Two ways to get it:
+The corpus (`data/`) is **gitignored** - you can get the latest  Two ways to get it:
 
 - **Download** the prebuilt database from the latest [Release](https://github.com/somedingus/scotus-data-bot/releases/latest)
   (fastest; no token needed), or
@@ -80,9 +79,6 @@ duplicate-import quirks) are explained in the [README](README.md#method) and
    ```
 3. **CI** (`.github/workflows/ci.yml`) runs ruff lint + format-check + pytest on Python
    3.10–3.12 for every PR. Keep it green.
-4. **Commit messages** end with the plain attribution line:
-   ```
-   jb-code-bot-v1
    ```
 
 ### Testing conventions (see `tests/`)
