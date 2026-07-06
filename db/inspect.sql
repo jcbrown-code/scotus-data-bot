@@ -14,6 +14,10 @@ SELECT
   (SELECT count(*) FROM clusters WHERE dedup_role='duplicate')                 AS duplicates,
   (SELECT count(*) FROM opinions)                                              AS opinions,
   (SELECT count(*) FROM citations)                                             AS citations;
+-- keep_decisions is case-level (scotus_decisions); opinions is document-level — seriatim
+-- cases carry several opinions that link to one decision, so opinions >= keep_decisions.
+SELECT 'keep_decisions = distinct decisions (cases); opinions = opinion documents '
+    || '(seriatim cases have several)' AS note;
 
 SELECT '== COMPLETENESS (should be 0 textless) ==' AS section;
 SELECT count(*) AS textless_decisions

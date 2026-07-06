@@ -13,6 +13,10 @@ built from the [CourtListener](https://www.courtlistener.com/) API by this proje
 | All clusters (incl. REVIEW + duplicates, with provenance) | 1,076 |
 | Full text | ~9.5M characters (`html_with_citations` + tag-stripped `plain_text`) |
 
+**Decisions vs. opinions:** the **663** count is case-level (one row per decision in
+`scotus_decisions`); the **690** opinions are document-level. The 27 extra come from 13 seriatim
+cases (each Justice writing separately) whose opinions all link to one decision via `cluster_id`.
+
 Validated against [Wikipedia's annual SCOTUS decision totals](https://en.wikipedia.org/wiki/Number_of_U.S._Supreme_Court_cases_decided_by_year)
 (663 vs 647; most years exact or ±1). All landmark cases present (Marbury, McCulloch,
 Martin v. Hunter, Dartmouth, Gibbons, Fletcher).

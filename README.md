@@ -55,6 +55,18 @@ Dartmouth, Gibbons, Fletcher).
 
 ## Repository layout
 
+```mermaid
+flowchart TB
+    API["CourtListener API<br/>clusters + opinions"]
+    API -->|"src/extract.py"| RAW["data/raw/<br/>raw_clusters.json · fulltext/"]
+    RAW -->|"src/transform.py<br/>filter + de-dup"| DS["dataset/ · committed audit<br/>all_clusters.csv (1,076) → keep.csv (663)"]
+    DS -->|"src/load.py"| DB["data/processed/scotus.sqlite<br/>scotus_decisions view = 663 · FTS5"]
+    DB -->|"make dist / make release"| REL["GitHub Release<br/>scotus.sqlite.gz"]
+    CFG["config/settings.py<br/>paths · token · date range"] -.-> RAW
+    PIPE["src/pipeline.py<br/>orchestrator (--stage)"] -.-> DB
+    QA["tests/ · db/inspect.sql · CI<br/>validate lineage + counts"] -.-> DB
+```
+
 ```
 pyproject.toml         package metadata + deps (extras: [dev], [postgres]) + entry points
 config/settings.py     paths + env (token, date range, DB path)
