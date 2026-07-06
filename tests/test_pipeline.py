@@ -1,9 +1,10 @@
 """Tests for src.pipeline orchestration (no network; settings paths monkeypatched)."""
 
+import csv
 import json
 
 from config import settings
-from src import pipeline
+from src import extract, pipeline
 
 
 def test_write_csv(tmp_path):
@@ -46,6 +47,35 @@ def test_stage_load(monkeypatch, capsys):
     )
     pipeline.stage_load()
     assert "663" in capsys.readouterr().out
+
+
+def test_stage_text_logs_failures(tmp_path, monkeypatch):
+    """A failed opinion fetch is recorded durably in FAILURES_CSV, not just stderr."""
+    keep = tmp_path / "keep.csv"
+    keep.write_text(
+        "cluster_id,caseName,us_cite,dateFiled,scdb_id,source\n"
+        "99,Foo v. Bar,5 U.S. 1,1801-01-01,,L\n"
+    )
+    fulltext = tmp_path / "fulltext"
+    fulltext.mkdir()
+    monkeypatch.setattr(settings, "ensure_dirs", lambda: None)
+    monkeypatch.setattr(settings, "KEEP_CSV", str(keep))
+    monkeypatch.setattr(settings, "FULLTEXT_DIR", str(fulltext))
+    monkeypatch.setattr(settings, "MANIFEST_CSV", str(tmp_path / "manifest.csv"))
+    monkeypatch.setattr(settings, "FAILURES_CSV", str(tmp_path / "failures.csv"))
+    monkeypatch.setenv("COURTLISTENER_API_TOKEN", "x")
+
+    def boom(cid, headers):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(extract, "fetch_opinions", boom)
+
+    pipeline.stage_text()
+
+    rows = list(csv.DictReader(open(tmp_path / "failures.csv")))
+    assert len(rows) == 1
+    assert rows[0]["cluster_id"] == "99"
+    assert "kaboom" in rows[0]["error"]
 
 
 def test_main_runs_all_stages(monkeypatch):

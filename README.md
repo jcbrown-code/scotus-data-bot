@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml)
 
-An ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
+Version 1.0: A python ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
 Court decisions, 1790–1820** from the [CourtListener](https://www.courtlistener.com/)
 API and loads it into a lightweight, queryable **SQLite database**.
 
@@ -25,8 +25,8 @@ datasette scotus.sqlite          # or browse it in the browser
 
 ## The problem
 
-A naïve `docket__court=scotus` pull for 1790–1820 returns **1,076 clusters** — but only
-~660 are distinct Supreme Court decisions, because of two issues:
+Problem: A naïve `docket__court=scotus` pull for 1790–1820 returns **1,076 clusters** — but only
+~660 are distinct Supreme Court decisions, primarily because of two issues:
 
 1. **Non-SCOTUS cases.** Early *U.S. Reports* (Dallas reporters, vols 2–4) reprinted
    Pennsylvania state-court and federal circuit cases that CourtListener tags `scotus`.
@@ -48,8 +48,9 @@ A naïve `docket__court=scotus` pull for 1790–1820 returns **1,076 clusters** 
   preferring `html_with_citations`; both raw HTML and tag-stripped plain text are stored.
 
 **Validation:** the 663 per-year counts track [Wikipedia's annual SCOTUS totals](https://en.wikipedia.org/wiki/Number_of_U.S._Supreme_Court_cases_decided_by_year)
-— 647 (+16), most years exact or ±1 (residual = the 1791 term-vs-calendar shift and genuine
-companion-case granularity). All landmarks present (Marbury, McCulloch, Martin v. Hunter,
+— 647 (+16), most years exact or ±1 (residual = the 1791 term-vs-calendar shift and
+companion-case granularity). 
+All landmarks present (Marbury, McCulloch, Martin v. Hunter,
 Dartmouth, Gibbons, Fletcher).
 
 ## Repository layout
@@ -129,6 +130,12 @@ asset** (`scotus.sqlite.gz`, ~7 MB) rather than committed.
 - [x] Full-text retrieval for all 663 decisions
 - [x] ETL restructure + SQLite database with FTS, tests, and inspection
 - [x] Packaging (pyproject), ruff lint/format, 80% coverage, CI
+
+## Contributing
+
+New here? See **[CONTRIBUTING.md](CONTRIBUTING.md)** for developer onboarding — setup, the
+architecture/data-flow map, the dev workflow (ruff, tests, CI, commit conventions), and how to
+extend the corpus.
 
 ## License
 
