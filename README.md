@@ -8,7 +8,22 @@ API and loads it into a lightweight, queryable **SQLite database**.
 
 **663 distinct decisions · 690 opinions · ~9.5M characters of text.**
 
-## API Data Quality Issues Addressed  
+## Download the prebuilt database
+
+Don't want to run the pipeline? Grab the built SQLite database from the latest
+[**Release**](https://github.com/somedingus/scotus-data-bot/releases/latest):
+
+```bash
+# download scotus.sqlite.gz + SHA256SUMS from the Release, then:
+shasum -a 256 -c SHA256SUMS      # verify integrity
+gunzip scotus.sqlite.gz
+sqlite3 scotus.sqlite "SELECT count(*) FROM scotus_decisions;"   # -> 663
+datasette scotus.sqlite          # or browse it in the browser
+```
+
+(Maintainers publish it with `make release VERSION=v1.0.0`.)
+
+## The problem
 
 Problem: A naïve `docket__court=scotus` pull for 1790–1820 returns **1,076 clusters** — but only
 ~660 are distinct Supreme Court decisions, primarily because of two issues:

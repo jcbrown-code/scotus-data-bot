@@ -8,8 +8,9 @@
 PY ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 DB ?= data/processed/scotus.sqlite
 DSN ?=
+VERSION ?= v1.0.0
 
-.PHONY: setup ingest clusters db test cov lint format inspect serve dist pg clean help
+.PHONY: setup ingest clusters db test cov lint format inspect serve dist release pg clean help
 
 help:
 	@echo "make setup    - create .venv and install dev deps (pytest, ruff, datasette)"
@@ -23,6 +24,7 @@ help:
 	@echo "make inspect  - print a human-readable completeness report"
 	@echo "make serve    - open the database in Datasette (browser UI)"
 	@echo "make dist     - gzip the DB + write SHA256SUMS (release artifact)"
+	@echo "make release VERSION=v1.0.0 - build + publish the corpus as a GitHub Release [needs gh]"
 	@echo "make pg DSN=postgres://... - load the same schema into Postgres"
 
 setup:
@@ -62,6 +64,13 @@ dist:
 	gzip -kf $(DB)
 	cd $(dir $(DB)) && shasum -a 256 $(notdir $(DB)).gz > SHA256SUMS
 	@echo "artifact: $(DB).gz  (+ SHA256SUMS)"
+
+# Build the artifact and publish it as a GitHub Release (requires the `gh` CLI, authed).
+# The .sqlite corpus is gitignored, so the Release is how the built database is distributed.
+release: dist
+	gh release create $(VERSION) "$(DB).gz" "$(dir $(DB))SHA256SUMS" \
+		--title "SCOTUS corpus 1790-1820 ($(VERSION))" \
+		--notes-file RELEASE_NOTES.md
 
 pg:
 	$(PY) -m src.load --target postgres --dsn $(DSN)
