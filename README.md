@@ -1,6 +1,6 @@
 # scotus-data-bot
 
-[![CI](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml)
+[![CI](https://github.com/jcbrown-code/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/jcbrown-code/scotus-data-bot/actions/workflows/ci.yml)
 
 Version 1.0: A python ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
 Court decisions, 1790–1820** from the [CourtListener](https://www.courtlistener.com/)
@@ -11,7 +11,7 @@ API and loads it into a lightweight, queryable **SQLite database**.
 ## Download the prebuilt database
 
 Don't want to run the pipeline? Grab the built SQLite database from the latest
-[**Release**](https://github.com/somedingus/scotus-data-bot/releases/latest):
+[**Release**](https://github.com/jcbrown-code/scotus-data-bot/releases/latest):
 
 ```bash
 # download scotus.sqlite.gz + SHA256SUMS from the Release, then:
