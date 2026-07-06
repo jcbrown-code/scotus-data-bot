@@ -5,7 +5,7 @@ index over opinion text. The same schema loads into Postgres (`--target postgres
 lazy-importing `psycopg`) using a tsvector + GIN index instead of FTS5.
 
 Inputs (see config.settings):
-  all_clusters.csv (processed)   -> clusters         (all 1,076, with bucket/dedup flags)
+  all_clusters.csv (dataset)     -> clusters         (all 1,076, with bucket/dedup flags)
   raw_clusters.json (raw)        -> citations        (structured parallel cites)
   fulltext/<id>.json (raw)       -> opinions         (raw_html + plain_text)
   review_dispositions.csv (set)  -> review_dispositions
@@ -127,13 +127,16 @@ def _load_clusters(conn, ph, path):
 
 
 def _load_citations(conn, ph, target, raw_path):
+    """Load structured citations, collapsing exact-duplicate (cluster, reporter, volume,
+    page) tuples. Returns (inserted, dropped) so the drop count is reported, not silent."""
     raw = json.load(open(raw_path))
-    seen, out = set(), []
+    seen, out, dropped = set(), [], 0
     for r in raw:
         cid = r["id"]
         for c in r.get("citations") or []:
             key = (cid, c.get("reporter"), str(c.get("volume")), str(c.get("page")))
             if key in seen:
+                dropped += 1
                 continue
             seen.add(key)
             out.append(
@@ -148,7 +151,7 @@ def _load_citations(conn, ph, target, raw_path):
     conflict = "" if target == "sqlite" else " ON CONFLICT DO NOTHING"
     verb = "INSERT OR IGNORE INTO" if target == "sqlite" else "INSERT INTO"
     conn.executemany(f"{verb} citations VALUES ({','.join([ph] * 5)}){conflict}", out)
-    return len(out)
+    return len(out), dropped
 
 
 def _load_opinions(conn, ph, fulltext_dir):
@@ -246,7 +249,7 @@ def build_db(
     for stmt in DDL:
         conn.execute(stmt)
     n_clusters = _load_clusters(conn, ph, all_clusters)
-    n_citations = _load_citations(conn, ph, target, raw_clusters)
+    n_citations, n_citation_dupes_dropped = _load_citations(conn, ph, target, raw_clusters)
     n_opinions = _load_opinions(conn, ph, fulltext_dir)
     n_disp = _load_dispositions(conn, ph, dispositions)
     _build_fts(conn, target)
@@ -266,6 +269,7 @@ def build_db(
         "n_duplicates": n_dup,
         "n_opinions": n_opinions,
         "n_citations": n_citations,
+        "n_citation_dupes_dropped": n_citation_dupes_dropped,
         "n_review_dispositions": n_disp,
     }
     _write_meta(conn, ph, counts)

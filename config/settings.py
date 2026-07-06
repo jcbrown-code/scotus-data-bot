@@ -22,11 +22,15 @@ RAW_CLUSTERS = os.path.join(RAW_DIR, "raw_clusters.json")
 FULLTEXT_DIR = os.path.join(RAW_DIR, "fulltext")
 
 # processed (gitignored) staging
-ALL_CLUSTERS_CSV = os.path.join(PROCESSED_DIR, "all_clusters.csv")
 REVIEW_CSV = os.path.join(PROCESSED_DIR, "review.csv")
 DUPLICATES_CSV = os.path.join(PROCESSED_DIR, "duplicates.csv")
+# durable per-run log of KEEP clusters whose opinion-text fetch failed (should be empty)
+FAILURES_CSV = os.path.join(PROCESSED_DIR, "text_fetch_failures.csv")
 
-# committed snapshot (the human-reviewable provenance)
+# committed snapshot (the human-reviewable provenance / audit trail)
+# all_clusters.csv holds ALL 1,076 clusters with bucket + dedup_role + dup_of — the full,
+# git-visible record of every filtered/de-duplicated row (nothing dropped without a trace).
+ALL_CLUSTERS_CSV = os.path.join(DATASET_DIR, "all_clusters.csv")
 KEEP_CSV = os.path.join(DATASET_DIR, "keep.csv")
 MANIFEST_CSV = os.path.join(DATASET_DIR, "fulltext_manifest.csv")
 REVIEW_DISPOSITIONS_CSV = os.path.join(DATASET_DIR, "review_dispositions.csv")

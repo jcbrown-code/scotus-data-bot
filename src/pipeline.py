@@ -85,7 +85,7 @@ def stage_text(limit=0):
     rows = list(csv.DictReader(open(settings.KEEP_CSV)))
     if limit:
         rows = rows[:limit]
-    manifest, done, skip, fail = [], 0, 0, 0
+    manifest, failures, done, skip, fail = [], [], 0, 0, 0
 
     for i, r in enumerate(rows, 1):
         cid = r["cluster_id"]
@@ -101,6 +101,7 @@ def stage_text(limit=0):
             api_ops = extract.fetch_opinions(cid, headers)
         except Exception as e:
             print(f"  [{i}] cluster {cid} FAILED: {e}", file=sys.stderr)
+            failures.append({"cluster_id": cid, "caseName": r["caseName"], "error": str(e)})
             fail += 1
             continue
         ops = [transform.opinion_record(o) for o in api_ops]
@@ -127,8 +128,13 @@ def stage_text(limit=0):
         time.sleep(extract.PACE["delay"])
 
     _write_csv(settings.MANIFEST_CSV, settings.MANIFEST_COLS, manifest)  # committed snapshot
+    # Durable per-run failure log — a KEEP decision missing text is a data gap, so it must
+    # be recorded, not left in stderr only.
+    _write_csv(settings.FAILURES_CSV, ["cluster_id", "caseName", "error"], failures)
     empty = sum(1 for m in manifest if (m["total_chars"] or 0) == 0)
     print(f"text: fetched={done} skipped={skip} failed={fail} | textless={empty}")
+    if failures:
+        print(f"  {len(failures)} text-fetch failures logged -> {settings.FAILURES_CSV}")
 
 
 def stage_load():
