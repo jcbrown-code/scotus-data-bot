@@ -13,7 +13,7 @@ project info can be found in the [README](README.md).
 ## 2. Setup
 
 ```bash
-git clone https://github.com/somedingus/scotus-data-bot.git
+git clone https://github.com/jcbrown-code/scotus-data-bot.git
 cd scotus-data-bot
 make setup          # creates .venv and runs `pip install -e ".[dev]"`
 make test           # sanity check — unit tests should pass
@@ -29,11 +29,11 @@ The corpus (`data/`) is **gitignored** — it isn't in the repo. What you need d
 you're doing:
 
 **To use / explore the data** (recommended; no token) — download the prebuilt database from the
-latest [Release](https://github.com/somedingus/scotus-data-bot/releases/latest) and unpack it to
+latest [Release](https://github.com/jcbrown-code/scotus-data-bot/releases/latest) and unpack it to
 where the tooling expects:
 
 ```bash
-gh release download v1.0.0 --repo somedingus/scotus-data-bot --pattern 'scotus.sqlite.gz'
+gh release download v1.0.0 --repo jcbrown-code/scotus-data-bot --pattern 'scotus.sqlite.gz'
 mkdir -p data/processed
 gunzip -c scotus.sqlite.gz > data/processed/scotus.sqlite
 make inspect        # works now; also `make serve`, and sqlite3/datasette queries

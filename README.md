@@ -1,6 +1,6 @@
 # scotus-data-bot
 
-[![CI](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/somedingus/scotus-data-bot/actions/workflows/ci.yml)
+[![CI](https://github.com/jcbrown-code/scotus-data-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/jcbrown-code/scotus-data-bot/actions/workflows/ci.yml)
 
 Version 1.0: A python ETL pipeline that builds a clean, de-duplicated, full-text corpus of **U.S. Supreme
 Court decisions, 1790–1820** from the [CourtListener](https://www.courtlistener.com/)
@@ -11,7 +11,7 @@ API and loads it into a lightweight, queryable **SQLite database**.
 ## Download the prebuilt database
 
 Don't want to run the pipeline? Grab the built SQLite database from the latest
-[**Release**](https://github.com/somedingus/scotus-data-bot/releases/latest):
+[**Release**](https://github.com/jcbrown-code/scotus-data-bot/releases/latest):
 
 ```bash
 # download scotus.sqlite.gz + SHA256SUMS from the Release, then:
@@ -54,6 +54,18 @@ All landmarks present (Marbury, McCulloch, Martin v. Hunter,
 Dartmouth, Gibbons, Fletcher).
 
 ## Repository layout
+
+```mermaid
+flowchart TB
+    API["CourtListener API<br/>clusters + opinions"]
+    API -->|"src/extract.py"| RAW["data/raw/<br/>raw_clusters.json · fulltext/"]
+    RAW -->|"src/transform.py<br/>filter + de-dup"| DS["dataset/ · committed audit<br/>all_clusters.csv (1,076) → keep.csv (663)"]
+    DS -->|"src/load.py"| DB["data/processed/scotus.sqlite<br/>scotus_decisions view = 663 · FTS5"]
+    DB -->|"make dist / make release"| REL["GitHub Release<br/>scotus.sqlite.gz"]
+    CFG["config/settings.py<br/>paths · token · date range"] -.-> RAW
+    PIPE["src/pipeline.py<br/>orchestrator (--stage)"] -.-> DB
+    QA["tests/ · db/inspect.sql · CI<br/>validate lineage + counts"] -.-> DB
+```
 
 ```
 pyproject.toml         package metadata + deps (extras: [dev], [postgres]) + entry points
