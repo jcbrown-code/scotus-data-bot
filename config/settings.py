@@ -20,6 +20,8 @@ DATASET_DIR = os.path.join(ROOT, "dataset")  # committed: small reviewable snaps
 # raw API dumps
 RAW_CLUSTERS = os.path.join(RAW_DIR, "raw_clusters.json")
 FULLTEXT_DIR = os.path.join(RAW_DIR, "fulltext")
+# reporter apparatus (headmatter/summary/…) — a separate, optional pull; see src/apparatus.py
+RAW_APPARATUS = os.path.join(RAW_DIR, "raw_apparatus.json")
 
 # processed (gitignored) staging
 REVIEW_CSV = os.path.join(PROCESSED_DIR, "review.csv")
@@ -33,10 +35,16 @@ FAILURES_CSV = os.path.join(PROCESSED_DIR, "text_fetch_failures.csv")
 ALL_CLUSTERS_CSV = os.path.join(DATASET_DIR, "all_clusters.csv")
 KEEP_CSV = os.path.join(DATASET_DIR, "keep.csv")
 MANIFEST_CSV = os.path.join(DATASET_DIR, "fulltext_manifest.csv")
+# committed snapshot of reporter-apparatus coverage (which clusters carry which apparatus kinds)
+APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
 REVIEW_DISPOSITIONS_CSV = os.path.join(DATASET_DIR, "review_dispositions.csv")
 
-# database artifact
+# database artifacts
 DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.sqlite"))
+# separate, optional apparatus asset (ATTACH-able, keyed on cluster_id); core DB stays untouched
+APPARATUS_DB_PATH = os.environ.get(
+    "SCOTUS_APPARATUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-apparatus.sqlite")
+)
 DB_DSN = os.environ.get("SCOTUS_DB_DSN")  # postgres connection string (optional)
 
 # ---- run parameters --------------------------------------------------------
@@ -119,6 +127,23 @@ def get_token():
 def build_timestamp():
     """Build timestamp for the meta table; overridable for reproducible builds."""
     return os.environ.get("SCOTUS_BUILD_TIMESTAMP") or datetime.now(timezone.utc).isoformat()
+
+
+def git_commit():
+    """Short git commit of the build tree, or 'unknown'. Used to version-pin built assets so a
+    consumer can confirm two files (e.g. core DB + apparatus asset) came from the same build."""
+    import subprocess
+
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+    except Exception:
+        return "unknown"
 
 
 def ensure_dirs():

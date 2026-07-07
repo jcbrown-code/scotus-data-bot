@@ -121,6 +121,10 @@ loads into Postgres via `python -m src.load --target postgres --dsn …`. Tables
 `citations`, `opinions`, `review_dispositions`, `meta`, and the `scotus_decisions` view (the
 canonical 663). See [db/README.md](db/README.md) for the schema and example queries.
 
+An optional, separate asset (`scotus-apparatus.sqlite`, `python -m src.pipeline --stage apparatus`)
+carries the reporter apparatus — syllabus, summary, headmatter, and arguments of counsel — that the
+opinion bodies omit; it `ATTACH`es and joins on `cluster_id`, leaving the core corpus frozen.
+
 **Inspect / confirm completeness** — by eye or by SQL:
 ```bash
 make inspect                              # provenance, totals, 0-textless check, per-year vs Wikipedia

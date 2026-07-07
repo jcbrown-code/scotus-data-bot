@@ -24,6 +24,14 @@ OPINION_FIELDS = (
     "id,type,author_str,extracted_by_ocr,html_with_citations,plain_text,xml_harvard,html"
 )
 
+# Reporter apparatus (front matter the opinion body omits): the Harvard-CAP headmatter and the
+# reporter's summary / syllabus / arguments of counsel, plus small cluster-level metadata. Pulled
+# into a SEPARATE, optional asset (see src/apparatus.py) so the audited core corpus stays frozen.
+APPARATUS_FIELDS = (
+    "id,case_name_full,syllabus,headnotes,summary,headmatter,arguments,"
+    "disposition,history,procedural_history,attorneys,judges"
+)
+
 # Adaptive pacing for the per-cluster opinion fetch: a steady delay between requests,
 # auto-raised on each 429 so the run settles just under CourtListener's short-window
 # throttle instead of bursting into repeated back-offs.
@@ -62,8 +70,11 @@ def _get(url, headers, timeout=60, pace=False):
     raise RuntimeError(f"failed to fetch after retries: {url}")
 
 
-def fetch_clusters(after, before, token, pause=0.3):
-    """Fetch SCOTUS clusters one year at a time (cursor-paginated within each year)."""
+def fetch_clusters(after, before, token, pause=0.3, fields=CLUSTER_FIELDS):
+    """Fetch SCOTUS clusters one year at a time (cursor-paginated within each year).
+
+    `fields` selects the payload: the default `CLUSTER_FIELDS` drives the frozen core corpus;
+    pass `APPARATUS_FIELDS` to pull the (much larger) reporter-apparatus payload instead."""
     headers = build_headers(token)
     y0, y1 = int(after[:4]), int(before[:4])
     rows, seen = [], set()
@@ -78,7 +89,7 @@ def fetch_clusters(after, before, token, pause=0.3):
                     "docket__court": "scotus",
                     "date_filed__gte": lo,
                     "date_filed__lte": hi,
-                    "fields": CLUSTER_FIELDS,
+                    "fields": fields,
                 }
             )
         )
