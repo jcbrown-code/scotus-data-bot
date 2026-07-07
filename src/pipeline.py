@@ -22,7 +22,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, transform
+from src import apparatus, extract, load, ocr_suggest, transform
 
 
 def _write_csv(path, cols, rows):
@@ -209,10 +209,88 @@ def stage_apparatus(from_cache=False):
         print(f"  {k:28} {v}")
 
 
+def _page_label_for(breaks, offset):
+    """Reporter page_label for a char_offset: the last page break at or before it ('' if none)."""
+    label = ""
+    for off, lb in breaks:
+        if off <= offset:
+            label = lb
+        else:
+            break
+    return label
+
+
+def stage_ocr_suggest():
+    """Generate the OCR-correction review artifact (dataset/ocr_corrections.csv) from the built DB.
+
+    One row per DISTINCT (original -> suggestion) mapping so review stays tractable; the apply
+    stage expands approved mappings to all occurrences. Needs `scotus.sqlite` (run --stage load
+    first) and the [correction] extra (wordfreq). Nothing is corrected here — only proposed."""
+    import sqlite3
+    from collections import defaultdict
+
+    settings.ensure_dirs()
+    if not os.path.exists(settings.DB_PATH):
+        sys.exit("ERROR: scotus.sqlite missing — run `--stage load` first.")
+    conn = sqlite3.connect(settings.DB_PATH)
+
+    breaks = defaultdict(list)
+    for oid, off, label in conn.execute(
+        "SELECT opinion_id, char_offset, page_label FROM page_breaks "
+        "ORDER BY opinion_id, char_offset"
+    ):
+        breaks[oid].append((off, label))
+
+    # aggregate per distinct (original_lower -> suggestion): count + first example location
+    agg = {}
+    for oid, clean_text in conn.execute("SELECT opinion_id, clean_text FROM opinions"):
+        for s in ocr_suggest.suggest_text(clean_text):
+            key = (s["original"].lower(), s["suggestion"])
+            row = agg.get(key)
+            if row is None:
+                agg[key] = {
+                    "original": s["original"].lower(),
+                    "suggestion": s["suggestion"],
+                    "rule": s["rule"],
+                    "n_candidates": s["n_candidates"],
+                    "alternatives": s["alternatives"],
+                    "count": 1,
+                    "example_opinion_id": oid,
+                    "example_page": _page_label_for(breaks.get(oid, []), s["char_offset"]),
+                    "status": "pending",
+                    "corrected": "",
+                }
+            else:
+                row["count"] += 1
+    conn.close()
+
+    rows = sorted(agg.values(), key=lambda r: (-r["count"], r["original"]))
+    cols = [
+        "original",
+        "suggestion",
+        "rule",
+        "n_candidates",
+        "alternatives",
+        "count",
+        "example_opinion_id",
+        "example_page",
+        "status",
+        "corrected",
+    ]
+    _write_csv(settings.OCR_CORRECTIONS_CSV, cols, rows)
+    total = sum(r["count"] for r in rows)
+    print(
+        f"ocr-suggest: {len(rows)} distinct corrections ({total} occurrences) "
+        f"-> {settings.OCR_CORRECTIONS_CSV}"
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "--stage", choices=["clusters", "text", "load", "apparatus", "all"], default="all"
+        "--stage",
+        choices=["clusters", "text", "load", "apparatus", "ocr-suggest", "all"],
+        default="all",
     )
     ap.add_argument(
         "--from-cache", action="store_true", help="reprocess cached clusters, no network"
@@ -227,9 +305,11 @@ def main():
         stage_text(limit=args.limit)
     if args.stage in ("load", "all"):
         stage_load()
-    # 'apparatus' is a separate, optional asset — deliberately NOT part of 'all'.
+    # 'apparatus' and 'ocr-suggest' are separate, optional stages — deliberately NOT part of 'all'.
     if args.stage == "apparatus":
         stage_apparatus(from_cache=args.from_cache)
+    if args.stage == "ocr-suggest":
+        stage_ocr_suggest()
 
 
 if __name__ == "__main__":

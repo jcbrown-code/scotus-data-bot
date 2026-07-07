@@ -183,15 +183,19 @@ E.g. `fide→side` is right for OCR'd "ſide" but wrong inside "bona fide"; only
 context. This is *why* nothing auto-applies.
 
 **Stages & artifacts:**
-1. **suggest** (`--stage ocr-suggest`) → committed `dataset/ocr_corrections.csv`, one row per proposed
-   fix: `opinion_id, char_offset, page_label, original, suggestion, rule, n_candidates, alternatives,
-   status(pending), corrected`. (`page_label` via `page_breaks` gives the human the reporter page.)
+1. **suggest** (`--stage ocr-suggest`) → committed `dataset/ocr_corrections.csv`, one row **per
+   distinct `(original → suggestion)` mapping** (~1,058 rows, not 7,218 instances — a human approves
+   `juftice→justice` once, not 72 times): `original, suggestion, rule, n_candidates, alternatives,
+   count, example_opinion_id, example_page, status(pending), corrected`. Per-distinct keeps review
+   tractable; the context-blindness risk (e.g. `fide→side` in "bona fide") is handled by **rejecting
+   the whole mapping** — better to miss than to wrongly apply a token everywhere.
 2. **review** — a human sets `status` = approved | rejected | edited (overriding `corrected`).
    Mirrors `review_dispositions`.
-3. **apply** (`--stage ocr-apply`) → applies only approved fixes to `clean_text`, producing a new
-   reviewed layer; counts logged in `meta`. **Offset-preserving:** long-s/`h→b` fixes are same-length
-   single-char substitutions, so `page_breaks.char_offset` stays valid; length-changing transform
-   classes (future) would require an offset rebuild + `clean_version` bump.
+3. **apply** (`--stage ocr-apply`) → for each approved mapping, replaces all whole-word,
+   case-matched occurrences in `clean_text`, writing the new reviewed layer to `corrected_text`;
+   counts logged in `meta`. **Offset-preserving:** long-s/`h→b` fixes are same-length single-char
+   substitutions, so `page_breaks.char_offset` stays valid against `corrected_text`; length-changing
+   transform classes (future) would require an offset rebuild + `clean_version` bump.
 
 **Resource decision (resolved by prototype):** `wordfreq` — frequency-aware, handles morphology and
 spelling variants without special-casing, and its frequencies double as the ranker/ambiguity

@@ -37,6 +37,9 @@ KEEP_CSV = os.path.join(DATASET_DIR, "keep.csv")
 MANIFEST_CSV = os.path.join(DATASET_DIR, "fulltext_manifest.csv")
 # committed snapshot of reporter-apparatus coverage (which clusters carry which apparatus kinds)
 APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
+# committed OCR-correction review artifact: one row per distinct (original -> suggestion) mapping,
+# with a human-editable `status`/`corrected` (suggest->review->apply pipeline; see src.ocr_suggest)
+OCR_CORRECTIONS_CSV = os.path.join(DATASET_DIR, "ocr_corrections.csv")
 REVIEW_DISPOSITIONS_CSV = os.path.join(DATASET_DIR, "review_dispositions.csv")
 
 # database artifacts
