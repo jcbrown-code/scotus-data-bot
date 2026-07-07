@@ -152,3 +152,58 @@ COLD Cases, Harvard LIL (https://lil.law.harvard.edu/our-work/cold-cases/) ·
 free-law/Caselaw_Access_Project (https://huggingface.co/datasets/free-law/Caselaw_Access_Project) ·
 Pile of Law, Henderson et al. 2022 (https://arxiv.org/abs/2207.00220) ·
 CourtListener Case Law API (https://www.courtlistener.com/help/api/rest/case-law/).
+
+## 7. OCR correction pipeline — suggest → review → apply (design)
+
+`ocr_suspect` (§3, curated) only *locates* a small hand-picked sample (after the false-positive fix:
+208 opinions, ~53 tokens). The full corrector is a **human-in-the-loop** pipeline: detect+suggest →
+human review → apply only approved fixes. Deterministic, non-destructive, logged — the same shape as
+the existing REVIEW → `review_dispositions` → load flow, applied to tokens.
+
+**Core mechanism — transform-and-validate (prototyped on the full corpus).** For each token, generate
+candidate corrections by applying deterministic OCR-inverse transforms over subsets of character
+positions — long-s `f→s` (`juftice`→`justice`), `h→b` `b→h` (`tbe`→`the`); extensible to `l↔1`,
+`O↔0`, `rn→m`. Validate/rank each candidate with a **frequency lexicon** (`wordfreq`): keep it only
+when `zipf(candidate) ≥ 3.0` **and** `zipf(candidate) − zipf(original) ≥ 2.0` (i.e. the fix is a much
+*more common* word). Frequency is doing the heavy lifting — it's what a binary wordlist can't:
+
+- A binary wordlist (`/usr/share/dict/words`) FAILS: it lacks plurals/inflections (`states`, `has`,
+  `having`, `parties` read as non-words) and British/archaic spellings, and it produced a real **false
+  suggestion** `favour→savour` (it lacks "favour", "savour" is in it).
+- The frequency gate fixes all of that automatically: `favour`(4.3)→`savour`(2.8) is rejected (the
+  original is *more* common); `states`/`has`/`having`/`behaviour`/`honour`/`publick` get **no
+  suggestion**. Validated as regression checks.
+
+**Prototype result (long-s + `h→b` only):** **1,058** distinct tokens get a confident single-candidate
+suggestion (**7,218** instances), **1** ambiguous, zero regressions. Samples: `fuch→such`,
+`faid→said`, `conftitution→constitution`, `queftion→question`, `congrefs→congress`, `ftate→state`.
+
+**The suggester is token-level and context-blind — so human review is mandatory, not optional.**
+E.g. `fide→side` is right for OCR'd "ſide" but wrong inside "bona fide"; only a human sees the
+context. This is *why* nothing auto-applies.
+
+**Stages & artifacts:**
+1. **suggest** (`--stage ocr-suggest`) → committed `dataset/ocr_corrections.csv`, one row per proposed
+   fix: `opinion_id, char_offset, page_label, original, suggestion, rule, n_candidates, alternatives,
+   status(pending), corrected`. (`page_label` via `page_breaks` gives the human the reporter page.)
+2. **review** — a human sets `status` = approved | rejected | edited (overriding `corrected`).
+   Mirrors `review_dispositions`.
+3. **apply** (`--stage ocr-apply`) → applies only approved fixes to `clean_text`, producing a new
+   reviewed layer; counts logged in `meta`. **Offset-preserving:** long-s/`h→b` fixes are same-length
+   single-char substitutions, so `page_breaks.char_offset` stays valid; length-changing transform
+   classes (future) would require an offset rebuild + `clean_version` bump.
+
+**Resource decision (resolved by prototype):** `wordfreq` — frequency-aware, handles morphology and
+spelling variants without special-casing, and its frequencies double as the ranker/ambiguity
+resolver. It's a **correction-time tool, not the shipped runtime**, so it lives behind an optional
+extra (`[correction]`); the core ETL stays stdlib-only. Thresholds `GAIN=2.0`, `MIN_CAND=3.0`
+(validated defaults, tunable).
+
+**Open decisions (before building):**
+- **Apply output**: new `corrected_text` column (keeps `clean_text` as the stable mechanical layer;
+  my lean) vs. bump `clean_version` in place.
+- **Transform classes in v1**: long-s + `h→b` only (covers the 7,218 profiled instances; my lean) vs.
+  add `l↔1`/`O↔0`/`rn→m` now.
+- **Dependency**: `wordfreq` behind `[correction]` (my lean) vs. bundle a frozen frequency list for
+  fully-reproducible builds with no dependency.
+- **`■` and no-suggestion suspects**: still surfaced for the human as "flagged, no auto-fix"?
