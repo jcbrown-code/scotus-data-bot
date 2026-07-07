@@ -1,10 +1,12 @@
 """Pipeline orchestrator: extract -> transform -> load.
 
 Stages (run one or `all`):
-  clusters : fetch SCOTUS clusters (or --from-cache), filter + dedup, write staging CSVs.
-  text     : fetch opinion text for the KEEP set (resumable, paced), write fulltext + manifest.
-  load     : build the SQLite database from the staging files.
-  all      : clusters -> text -> load.
+  clusters  : fetch SCOTUS clusters (or --from-cache), filter + dedup, write staging CSVs.
+  text      : fetch opinion text for the KEEP set (resumable, paced), write fulltext + manifest.
+  load      : build the SQLite database from the staging files.
+  all       : clusters -> text -> load.
+  apparatus : build the optional reporter-apparatus asset (scotus-apparatus.sqlite); separate
+              pull, keyed on cluster_id, leaves the core DB untouched. NOT part of `all`.
 
 Network stages need COURTLISTENER_API_TOKEN; run via:
     agentsecrets env -- python -m src.pipeline --stage all --validate
@@ -20,7 +22,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import extract, load, transform
+from src import apparatus, extract, load, transform
 
 
 def _write_csv(path, cols, rows):
@@ -146,9 +148,72 @@ def stage_load():
     conn.close()
 
 
+def stage_apparatus(from_cache=False):
+    """Build the optional reporter-apparatus asset (scotus-apparatus.sqlite).
+
+    Pulls cluster-level apparatus (headmatter/summary/…) for the frozen corpus and builds a
+    standalone SQLite keyed on cluster_id. The core scotus.sqlite is never touched. Needs the
+    'clusters' stage first (for the corpus's cluster IDs). Network unless --from-cache."""
+    settings.ensure_dirs()
+    if not os.path.exists(settings.ALL_CLUSTERS_CSV):
+        sys.exit("ERROR: all_clusters.csv missing — run the 'clusters' stage first.")
+    clu = {int(r["cluster_id"]): r for r in csv.DictReader(open(settings.ALL_CLUSTERS_CSV))}
+    # canonical resolution: a duplicate resolves to its dup_of; a canonical resolves to itself.
+    corpus = {
+        cid: (int(r["dup_of"]) if r["dedup_role"] == "duplicate" and r["dup_of"] else cid)
+        for cid, r in clu.items()
+    }
+
+    if from_cache and os.path.exists(settings.RAW_APPARATUS):
+        raw = json.load(open(settings.RAW_APPARATUS))
+        print(f"loaded {len(raw)} raw apparatus clusters from cache", file=sys.stderr)
+    else:
+        token = settings.get_token()
+        print(f"fetching apparatus {settings.AFTER}..{settings.BEFORE}", file=sys.stderr)
+        raw = extract.fetch_clusters(
+            settings.AFTER, settings.BEFORE, token, fields=extract.APPARATUS_FIELDS
+        )
+        json.dump(raw, open(settings.RAW_APPARATUS, "w"))
+        print(f"cached {len(raw)} raw apparatus clusters", file=sys.stderr)
+
+    conn, counts = apparatus.build_apparatus_db(
+        path=settings.APPARATUS_DB_PATH,
+        raw_apparatus=settings.RAW_APPARATUS,
+        corpus=corpus,
+    )
+    # Committed coverage snapshot (lineage): which corpus clusters carry which apparatus kinds,
+    # with bucket/dedup provenance so the coverage breakdown is auditable without a join.
+    manifest = {}
+    for rc in raw:
+        cid = int(rc["id"])
+        if cid not in clu:
+            continue
+        rows = apparatus.apparatus_rows(rc)
+        if rows:
+            manifest[cid] = {
+                "cluster_id": cid,
+                "bucket": clu[cid]["bucket"],
+                "dedup_role": clu[cid]["dedup_role"],
+                "canonical_cluster_id": corpus[cid],
+                "kinds": ";".join(k for k, _, _ in rows),
+                "total_chars": sum(cc for _, cc, _ in rows),
+            }
+    _write_csv(
+        settings.APPARATUS_MANIFEST_CSV,
+        ["cluster_id", "bucket", "dedup_role", "canonical_cluster_id", "kinds", "total_chars"],
+        [manifest[k] for k in sorted(manifest)],
+    )
+    conn.close()
+    print(f"built apparatus asset at {settings.APPARATUS_DB_PATH}")
+    for k, v in counts.items():
+        print(f"  {k:28} {v}")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=["clusters", "text", "load", "all"], default="all")
+    ap.add_argument(
+        "--stage", choices=["clusters", "text", "load", "apparatus", "all"], default="all"
+    )
     ap.add_argument(
         "--from-cache", action="store_true", help="reprocess cached clusters, no network"
     )
@@ -162,6 +227,9 @@ def main():
         stage_text(limit=args.limit)
     if args.stage in ("load", "all"):
         stage_load()
+    # 'apparatus' is a separate, optional asset — deliberately NOT part of 'all'.
+    if args.stage == "apparatus":
+        stage_apparatus(from_cache=args.from_cache)
 
 
 if __name__ == "__main__":
