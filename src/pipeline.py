@@ -212,12 +212,12 @@ def stage_apparatus(from_cache=False):
 def _page_label_for(breaks, offset):
     """Reporter page_label for a char_offset: the last page break at or before it ('' if none)."""
     label = ""
-    for off, lb in breaks:
+    for off, lb in breaks:  # breaks are pre-sorted by char_offset, so we can stop past the offset
         if off <= offset:
             label = lb
         else:
             break
-    return label
+    return label or ""  # a break's page_label can be None; report it as '' (unknown)
 
 
 def stage_ocr_suggest():
@@ -241,10 +241,13 @@ def stage_ocr_suggest():
     ):
         breaks[oid].append((off, label))
 
-    # aggregate per distinct (original_lower -> suggestion): count + first example location
+    # aggregate per distinct (original_lower -> suggestion): count + first example location.
+    # ORDER BY makes the chosen example (and thus the committed artifact) deterministic.
     agg = {}
-    for oid, clean_text in conn.execute("SELECT opinion_id, clean_text FROM opinions"):
-        for s in ocr_suggest.suggest_text(clean_text):
+    for oid, clean_text in conn.execute(
+        "SELECT opinion_id, clean_text FROM opinions ORDER BY opinion_id"
+    ):
+        for s in ocr_suggest.suggest_text(clean_text or ""):
             key = (s["original"].lower(), s["suggestion"])
             row = agg.get(key)
             if row is None:

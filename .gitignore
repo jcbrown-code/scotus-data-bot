@@ -33,3 +33,6 @@ dist/
 .coverage
 .coverage.*
 htmlcov/
+
+# macOS Finder metadata
+.DS_Store

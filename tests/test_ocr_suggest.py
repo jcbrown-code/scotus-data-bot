@@ -53,7 +53,8 @@ def test_suggest_none_when_no_transform_helps():
 def test_suggest_ranks_and_lists_alternatives():
     # 'bab' -> {hab(0), bah(4.0), hah(3.5)}; two qualify, best is the most common
     s = ocr_suggest.suggest("bab", freq=freq)
-    assert s["suggestion"] == "bah" and s["n_candidates"] == 2
+    assert s["suggestion"] == "bah"
+    assert s["n_candidates"] == 2
     assert s["alternatives"] == "hah"
 
 
