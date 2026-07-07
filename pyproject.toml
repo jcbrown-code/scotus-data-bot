@@ -13,7 +13,7 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=4.0", "ruff>=0.6", "datasette>=0.64"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "ruff>=0.6", "datasette>=0.64", "hypothesis>=6.0"]
 postgres = ["psycopg[binary]>=3.1"]
 
 [project.scripts]
@@ -34,7 +34,9 @@ line-length = 99
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W"]  # pycodestyle errors/warnings, pyflakes, import sorting
+# E/W pycodestyle, F pyflakes, I import sorting, B flake8-bugbear (real bug patterns —
+# a standing guard that partly compensates for the codebase being untyped).
+select = ["E", "F", "I", "W", "B"]
 
 [tool.coverage.run]
 source = ["src", "config"]
