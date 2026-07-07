@@ -3,7 +3,10 @@
 These confirm the corpus is complete and internally consistent — the machine-checked
 counterpart to eyeballing the data in Datasette / `make inspect`."""
 
+import json
+
 from config import settings
+from src import clean
 from src import transform as t
 
 
@@ -113,6 +116,59 @@ def test_landmark_cases_present(db):
             )
             >= 1
         ), f"missing {name}"
+
+
+def test_clean_text_populated_and_versioned(db):
+    """Every opinion has non-empty clean_text stamped with the current CLEAN_VERSION."""
+    assert _scalar(db, "SELECT count(*) FROM opinions WHERE length(trim(clean_text))=0") == 0
+    assert _scalar(db, "SELECT count(*) FROM opinions WHERE clean_version IS NULL") == 0
+    assert _scalar(db, "SELECT count(DISTINCT clean_version) FROM opinions") == 1
+    assert _scalar(db, "SELECT clean_version FROM opinions LIMIT 1") == clean.CLEAN_VERSION
+    # no page-break sentinels (U+E000/E001) leaked into the canonical text
+    assert (
+        _scalar(
+            db,
+            "SELECT count(*) FROM opinions "
+            "WHERE instr(clean_text, char(57344))>0 OR instr(clean_text, char(57345))>0",
+        )
+        == 0
+    )
+
+
+def test_page_breaks_integrity(db):
+    """page_breaks resolve to opinions and index within clean_text; ordinals are contiguous."""
+    assert (
+        _scalar(
+            db,
+            "SELECT count(*) FROM page_breaks pb "
+            "LEFT JOIN opinions o ON o.opinion_id=pb.opinion_id WHERE o.opinion_id IS NULL",
+        )
+        == 0
+    )
+    # char_offset is a valid index into the opinion's clean_text
+    assert (
+        _scalar(
+            db,
+            "SELECT count(*) FROM page_breaks pb JOIN opinions o USING(opinion_id) "
+            "WHERE pb.char_offset < 0 OR pb.char_offset > length(o.clean_text)",
+        )
+        == 0
+    )
+    # ordinals per opinion run 1..n with no gaps
+    bad = _scalar(
+        db,
+        "SELECT count(*) FROM (SELECT opinion_id, count(*) n, min(ordinal) lo, max(ordinal) hi "
+        "FROM page_breaks GROUP BY opinion_id) WHERE lo!=1 OR hi!=n",
+    )
+    assert bad == 0
+
+
+def test_ocr_suspect_is_valid_json(db):
+    for (payload,) in db.execute(
+        "SELECT ocr_suspect FROM opinions WHERE ocr_suspect IS NOT NULL"
+    ).fetchall():
+        doc = json.loads(payload)  # raises if malformed
+        assert doc["count"] == len(doc["hits"]) and doc["count"] > 0
 
 
 def test_fts_finds_mcculloch(db):

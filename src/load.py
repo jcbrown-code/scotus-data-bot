@@ -7,7 +7,8 @@ lazy-importing `psycopg`) using a tsvector + GIN index instead of FTS5.
 Inputs (see config.settings):
   all_clusters.csv (dataset)     -> clusters         (all 1,076, with bucket/dedup flags)
   raw_clusters.json (raw)        -> citations        (structured parallel cites)
-  fulltext/<id>.json (raw)       -> opinions         (raw_html + plain_text)
+  fulltext/<id>.json (raw)       -> opinions         (raw_html + plain_text + derived clean_text)
+                                    + page_breaks     (star-pagination map, from src.clean)
   review_dispositions.csv (set)  -> review_dispositions
 """
 
@@ -19,7 +20,7 @@ import os
 import subprocess
 
 from config import settings
-from src import transform
+from src import clean, transform
 
 # ---- schema ----------------------------------------------------------------
 
@@ -56,7 +57,21 @@ DDL = [
         text_source      TEXT,
         char_count       INTEGER,
         raw_html         TEXT,
-        plain_text       TEXT
+        plain_text       TEXT,
+        clean_text       TEXT,
+        clean_version    INTEGER,
+        ocr_suspect      TEXT
+    )""",
+    # Reporter page boundaries within clean_text: char_offset indexes the versioned clean_text
+    # (where the reporter's page begins); anchor = the following words, for human/cross-version
+    # verification. See src/clean.py and docs/clean-text-design.md.
+    """CREATE TABLE page_breaks (
+        opinion_id  INTEGER REFERENCES opinions(opinion_id),
+        ordinal     INTEGER,
+        page_label  TEXT,
+        char_offset INTEGER,
+        anchor      TEXT,
+        PRIMARY KEY (opinion_id, ordinal)
     )""",
     """CREATE TABLE review_dispositions (
         cluster_id  INTEGER REFERENCES clusters(cluster_id),
@@ -155,26 +170,40 @@ def _load_citations(conn, ph, target, raw_path):
 
 
 def _load_opinions(conn, ph, fulltext_dir):
-    out = []
+    """Load opinions and derive, at build time, the cleaned column + page-break map from the cached
+    raw_html (non-destructive: raw_html/plain_text are stored untouched). Returns (n_opinions,
+    n_page_breaks)."""
+    out, breaks = [], []
     for f in sorted(glob.glob(os.path.join(fulltext_dir, "*.json"))):
         j = json.load(open(f))
         for o in j["opinions"]:
             ocr = o.get("ocr")
+            oid = int(o["opinion_id"])
+            raw = o.get("raw") or ""
+            clean_text, page_breaks, ocr_suspect = clean.clean_opinion(raw)
             out.append(
                 (
-                    int(o["opinion_id"]),
+                    oid,
                     int(j["cluster_id"]),
                     o.get("type"),
                     o.get("author") or "",
                     1 if ocr else (0 if ocr is False else None),
                     o.get("text_source"),
                     o.get("char_count"),
-                    o.get("raw") or "",
+                    raw,
                     o.get("text") or "",
+                    clean_text,
+                    clean.CLEAN_VERSION,
+                    clean.ocr_suspect_json(ocr_suspect),
                 )
             )
-    conn.executemany(f"INSERT INTO opinions VALUES ({','.join([ph] * 9)})", out)
-    return len(out)
+            for pb in page_breaks:
+                breaks.append(
+                    (oid, pb["ordinal"], pb["page_label"], pb["char_offset"], pb["anchor"])
+                )
+    conn.executemany(f"INSERT INTO opinions VALUES ({','.join([ph] * 12)})", out)
+    conn.executemany(f"INSERT INTO page_breaks VALUES ({','.join([ph] * 5)})", breaks)
+    return len(out), len(breaks)
 
 
 def _load_dispositions(conn, ph, path):
@@ -189,19 +218,22 @@ def _load_dispositions(conn, ph, path):
 
 
 def _build_fts(conn, target):
+    # Index the canonical clean_text. The canonical column stays strict NFC; the FTS index gets a
+    # diacritic-folded projection for recall via the tokenizer (see docs/clean-text-design.md).
     if target == "sqlite":
         conn.execute(
             "CREATE VIRTUAL TABLE opinions_fts USING fts5("
-            "plain_text, content='opinions', content_rowid='opinion_id')"
+            "clean_text, content='opinions', content_rowid='opinion_id', "
+            'tokenize="unicode61 remove_diacritics 2")'
         )
         conn.execute(
-            "INSERT INTO opinions_fts(rowid, plain_text) "
-            "SELECT opinion_id, plain_text FROM opinions"
+            "INSERT INTO opinions_fts(rowid, clean_text) "
+            "SELECT opinion_id, clean_text FROM opinions"
         )
     else:
         conn.execute(
             "ALTER TABLE opinions ADD COLUMN tsv tsvector "
-            "GENERATED ALWAYS AS (to_tsvector('english', plain_text)) STORED"
+            "GENERATED ALWAYS AS (to_tsvector('english', clean_text)) STORED"
         )
         conn.execute("CREATE INDEX opinions_tsv_gin ON opinions USING GIN (tsv)")
 
@@ -250,7 +282,7 @@ def build_db(
         conn.execute(stmt)
     n_clusters = _load_clusters(conn, ph, all_clusters)
     n_citations, n_citation_dupes_dropped = _load_citations(conn, ph, target, raw_clusters)
-    n_opinions = _load_opinions(conn, ph, fulltext_dir)
+    n_opinions, n_page_breaks = _load_opinions(conn, ph, fulltext_dir)
     n_disp = _load_dispositions(conn, ph, dispositions)
     _build_fts(conn, target)
 
@@ -268,6 +300,7 @@ def build_db(
         "n_review": n_review,
         "n_duplicates": n_dup,
         "n_opinions": n_opinions,
+        "n_page_breaks": n_page_breaks,
         "n_citations": n_citations,
         "n_citation_dupes_dropped": n_citation_dupes_dropped,
         "n_review_dispositions": n_disp,

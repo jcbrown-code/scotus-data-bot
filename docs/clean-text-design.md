@@ -68,18 +68,27 @@ mapping: `dictionary.md`.
   empty this era). Committed lineage snapshot: `dataset/apparatus_manifest.csv` (688 rows).
 - Opinion-metadata backfill (663 paced requests) **deferred** — buys only the minor fields.
 
-**PR-B — `clean_text` over opinion bodies.** The original cleaning plan:
-- Add `clean_text`, `clean_version`, `ocr_suspect` to `opinions`; keep `raw_html` + `plain_text`.
-- Structure-aware stripper over `raw_html` (both HTML and XML dialects): drop CL-inserted
-  star-pagination markers (capture page boundaries), keep original document content; normalize
-  `\r`→`\n`, collapse whitespace, strip control chars, Unicode **NFC** (no ASCII folding in the
-  canonical column).
-- `page_breaks(opinion_id, ordinal, page_label, char_offset, anchor)` relational table; `char_offset`
-  into the versioned `clean_text`, `anchor` = following words for human/cross-version relocation.
-- **No OCR correction.** `ocr_suspect` records *where* OCR bigrams hit (rich `[{offset, token}, …]`),
-  turning a future manual pass from "re-scan 690 docs" into "jump to these spans."
-- FTS5 keeps the canonical column NFC and gets recall via a folded tokenizer
-  (`tokenize="unicode61 remove_diacritics 2"`) — no `unaccent`/shadow column.
+**PR-B — `clean_text` over opinion bodies. BUILT.** `src/clean.py` (`clean_opinion`), wired into
+`load._load_opinions` (derived at build time from cached `raw_html`; `raw_html`/`plain_text`
+untouched).
+- Added `clean_text`, `clean_version`, `ocr_suspect` to `opinions`; new
+  `page_breaks(opinion_id, ordinal, page_label, char_offset, anchor)` table (**3,633** breaks; 0
+  orphans; `char_offset` into the versioned `clean_text`, `anchor` = following words). 0 textless.
+- Structure-aware `HTMLParser` stripper handles **both** dialects: it suppresses star-pagination
+  markers and records a page break, keeping all original content (footnote bodies + inline ref
+  markers, caption, citations). Normalize `\r`→`\n`, strip control chars (keep `\t`/`\n`), collapse
+  whitespace, **NFC** (no ASCII folding — that lives in the FTS tokenizer).
+- **Three page-marker forms found (not just the structural one the plan assumed):**
+  (1) `<span class="star-pagination" label>` (455 ops), (2) `<page-number label>` (35), and
+  (3) a **bracketed inline text** form `[*626` / `*625]` (found on Dartmouth etc.). Forms 1–3 are all
+  captured. **Bare unbracketed `*54` is deliberately KEPT** — it's ambiguous (footnote asterisk vs.
+  content) and, in the residue, usually OCR-*garbled* pagination (`*2Q'7l`, `*8fUl`), so parsing it
+  would be lossy guessing. Residue: 69 opinions / 154 bare markers, preserved verbatim.
+- **No OCR correction.** `ocr_suspect` (JSON `{count, hits:[{offset, token}]}`) LOCATES a curated,
+  precision-first set of long-s/`h→b` tokens **plus every `■` unreadable-char glyph** (485 opinions
+  flagged); `■` is also kept visible in `clean_text`. A future manual pass jumps to spans.
+- FTS5 now indexes `clean_text` with a folded tokenizer
+  (`tokenize="unicode61 remove_diacritics 2"`) — canonical column stays NFC; no `unaccent`/shadow.
 
 ## 4. Decisions log (settled)
 
@@ -106,13 +115,14 @@ PR-A decisions **ruled** (2026-07-06):
 - **#6 — yes**, also capture `case_name_full` / `attorneys` / `judges` (into the apparatus asset, not
   the frozen core).
 
-Outstanding (PR-B; defaults are conservative/max-fidelity, taken unless overridden):
+PR-B decisions **ruled** (2026-07-07, conservative defaults taken):
 
-| # | Decision | Default (lean) |
+| # | Decision | Ruling |
 |---|---|---|
-| 1 | Inline footnote **ref markers** (`†`/`*`/digit superscripts) | keep verbatim |
-| 2 | `■` OCR "unreadable" glyph | keep + flag in `ocr_suspect` (it *is* missing-text signal) |
-| 5 | `ocr_suspect` detector scope | curated, unambiguous whole-word set (long-s + `h→b`); precision over recall |
+| 1 | Inline footnote **ref markers** (`†`/`*`/digit superscripts) | **kept verbatim** (fall out as inner text when tags are stripped) |
+| 2 | `■` OCR "unreadable" glyph | **kept** visible in `clean_text` (missing-text signal) **and flagged** in `ocr_suspect` |
+| 5 | `ocr_suspect` detector scope | **curated, unambiguous whole-word set** (long-s + `h→b`), precision over recall; extensible |
+| — | Bracketed inline `[*NNN`/`*NNN]` (discovered during impl) | **captured** as page breaks; bare `*NN` kept verbatim |
 
 ## 6. Prior art & best practices
 
