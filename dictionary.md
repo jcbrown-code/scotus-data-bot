@@ -71,10 +71,26 @@ from `opinions` API objects.
 | `char_count` | INTEGER | derived | — | — | `len(raw_html)` |
 | `raw_html` | TEXT | direct | `opinions.html_with_citations` | string (HTML/XML) | the `best_text` winner; preference order `html_with_citations` → `plain_text` → `xml_harvard` → `html` |
 | `plain_text` | TEXT | derived | ← `raw_html` | — | `transform.strip_html`: tags removed, entities unescaped, whitespace collapsed |
+| `clean_text` | TEXT | derived | ← `raw_html` | — | `clean.clean_opinion`: star-pagination removed (→ `page_breaks`), NFC + whitespace normalized, content preserved, no OCR correction |
+| `clean_version` | INTEGER | derived | — | — | `clean.CLEAN_VERSION`; bump ⇒ `clean_text`/offsets regenerated |
+| `ocr_suspect` | TEXT (JSON) | derived | ← `clean_text` | — | `{"count", "hits":[{offset, token}]}` of located OCR-suspect tokens; NULL if none |
 
 *Requested from the API as `best_text` fallbacks but stored only if chosen:* `opinions.plain_text`,
 `opinions.xml_harvard`, `opinions.html`. *Requested by the audit but not (yet) stored — deferred
 per design doc:* `opinions.ordering_key`, `opinions.per_curiam`, `opinions.joined_by_str`.
+
+### `page_breaks` (3,633 rows)
+
+Reporter page boundaries within `clean_text`, derived by `clean.clean_opinion`. One row per captured
+star-pagination marker (structural spans/`<page-number>` elements + bracketed inline `[*626`/`*625]`).
+
+| DB column | DB type | Origin | Notes |
+|---|---|---|---|
+| `opinion_id` | INTEGER | direct | → `opinions.opinion_id`; part of PK |
+| `ordinal` | INTEGER | derived | 1-based sequence within the opinion; part of PK |
+| `page_label` | TEXT | direct | the reporter page number (from the marker's `label` attr or its `*NNN` text) |
+| `char_offset` | INTEGER | derived | index into `clean_text` where that page begins (valid for the row's `clean_version`) |
+| `anchor` | TEXT | derived | first ~6 words following the break — human/cross-version relocation aid |
 
 ### `review_dispositions` (206 rows)
 

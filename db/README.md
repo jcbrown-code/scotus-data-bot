@@ -19,13 +19,31 @@ sqlite3 data/processed/scotus.sqlite      # ad-hoc SQL
 |---|---|---|
 | `clusters` | 1,076 | every cluster, with `bucket` (KEEP/REVIEW), `dedup_role`, `dup_of` |
 | `citations` | many per cluster | structured parallel cites (`reporter, volume, page, type`) |
-| `opinions` | ~690 | per opinion: `raw_html` + `plain_text`, `type`, `author`, `char_count` |
+| `opinions` | 690 | per opinion: `raw_html` + `plain_text` + `clean_text` (+ `clean_version`, `ocr_suspect`), `type`, `author`, `char_count` |
+| `page_breaks` | 3,633 | reporter page boundaries within `clean_text`: `ordinal, page_label, char_offset, anchor` |
 | `review_dispositions` | 206 | human adjudication of every REVIEW **candidate** (205 canonical + 1 later dedup'd as a duplicate) |
 | `meta` | — | build provenance (version, timestamp, date range, counts, git commit) |
 | `scotus_decisions` (view) | **663** | canonical decisions: `bucket='KEEP' AND dedup_role='canonical'` |
-| `opinions_fts` | — | FTS5 index over `opinions.plain_text` |
+| `opinions_fts` | — | FTS5 index over `opinions.clean_text` (diacritic-folded tokenizer for recall) |
 
-`clusters.dup_of` and `opinions.cluster_id`/`citations.cluster_id` reference `clusters.cluster_id`.
+`clusters.dup_of` and `opinions.cluster_id`/`citations.cluster_id` reference `clusters.cluster_id`;
+`page_breaks.opinion_id` references `opinions.opinion_id`.
+
+### Cleaned text
+
+`clean_text` is a deterministic, high-fidelity render of `raw_html` (`src/clean.py`): star-pagination
+page markers are removed (captured in `page_breaks` instead), whitespace/Unicode is normalized (NFC),
+but original content — footnote bodies, captions, citations — is preserved and **no OCR is
+corrected**. OCR-suspect tokens are located (not fixed) in `opinions.ocr_suspect` (JSON). `raw_html`
+and `plain_text` are untouched. `clean_version` tracks the cleaning logic (rebuild → offsets stay
+valid). `page_breaks.char_offset` indexes into `clean_text` where each reporter page begins.
+
+```sql
+-- reconstruct which reporter page a search hit falls on
+SELECT o.opinion_id, max(pb.page_label) AS page
+FROM opinions o JOIN page_breaks pb ON pb.opinion_id = o.opinion_id
+WHERE pb.char_offset <= instr(o.clean_text, 'commerce among the') GROUP BY o.opinion_id;
+```
 
 ## Reporter apparatus (optional separate asset)
 
