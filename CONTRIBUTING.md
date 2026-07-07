@@ -142,6 +142,11 @@ those before touching `transform.py`.
   monkeypatching `extract._get` (see `tests/test_extract.py`), and shared sample data lives in
   the `sample_raw_clusters` fixture (`tests/conftest.py`).
 - Use `@pytest.mark.parametrize` for input/output cases (see `tests/test_transform.py`).
+- **Property-based tests** (`tests/test_properties.py`, [Hypothesis](https://hypothesis.readthedocs.io/))
+  cover the pure functions (`clean.clean_opinion`, `transform.parse_us_cite`/`dedup`/…) by asserting
+  *invariants* over generated inputs — idempotence, page-break offset bounds, dedup partitioning.
+  This is the main safety net against the classes of bug a type checker would catch, since the
+  runtime is intentionally **untyped** (lint enforces `E/F/I/W/B`; `B` = flake8-bugbear).
 - The `db` fixture in `conftest.py` builds a real SQLite DB from staging files — that's the
   **integration layer** (`tests/test_data_quality.py`); it auto-skips when the data isn't present
   (e.g. in CI), so those tests won't fail a fresh checkout.

@@ -209,6 +209,10 @@ def clean_opinion(raw_html):
     if not raw_html or not raw_html.strip():
         return "", [], []
 
+    # Defensive: drop any pre-existing sentinel chars from the input so they can't be mistaken for
+    # renderer-inserted page-break markers (they are private-use and never legitimate content).
+    raw_html = raw_html.replace(_S0, "").replace(_S1, "")
+
     r = _Renderer()
     r.feed(raw_html)
     r.close()

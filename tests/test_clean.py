@@ -128,3 +128,11 @@ def test_no_sentinels_leak_into_output():
     raw = '<p>a <span class="star-pagination" label="1">*1</span> b</p>'
     ct, _, _ = clean.clean_opinion(raw)
     assert "" not in ct and "" not in ct
+
+
+def test_input_containing_sentinel_chars_is_safe():
+    """Adversarial: raw already holds the private-use sentinel chars — they must be dropped, not
+    mistaken for page-break markers (which would IndexError). Found via property fuzzing."""
+    raw = clean._S0 + "5" + clean._S1 + "<p>hello world</p>"
+    ct, pbs, _ = clean.clean_opinion(raw)
+    assert "hello world" in ct and pbs == []
