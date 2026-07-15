@@ -23,7 +23,7 @@ from collections import Counter
 
 from config import settings
 from src import apparatus, extract, load, mirror, transform_legacy
-from src.transform import materialize
+from src.transform import materialize, scope
 
 
 def _write_csv(path, cols, rows):
@@ -119,6 +119,23 @@ def stage_materialize():
         file=sys.stderr,
     )
     return stg_clusters, stg_opinions
+
+
+def stage_scope():
+    """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
+
+    Reads the staging DB, adjudicates via reporter authority + the reference oracle, and writes
+    the derived stg_cluster_scope table (is_scotus + evidence + proposed disposition). Propose-only
+    and non-destructive: nothing is dropped here; review and a later stage act on the labels."""
+    proposals = scope.run_scope()
+    counts = Counter(proposal.is_scotus for proposal in proposals)
+    print(
+        f"scope: {len(proposals)} clusters -> "
+        f"{counts.get('true', 0)} scotus / {counts.get('uncertain', 0)} review / "
+        f"{counts.get('false', 0)} out -> stg_cluster_scope",
+        file=sys.stderr,
+    )
+    return proposals
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -306,6 +323,7 @@ def main():
             "package-mirror",
             "fetch-mirror",
             "materialize",
+            "scope",
             "clusters",
             "text",
             "load",
@@ -331,6 +349,8 @@ def main():
         stage_fetch_mirror()
     if args.stage == "materialize":
         stage_materialize()
+    if args.stage == "scope":
+        stage_scope()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
