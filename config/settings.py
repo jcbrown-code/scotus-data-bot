@@ -23,6 +23,13 @@ FULLTEXT_DIR = os.path.join(RAW_DIR, "fulltext")
 # reporter apparatus (headmatter/summary/…) — a separate, optional pull; see src/apparatus.py
 RAW_APPARATUS = os.path.join(RAW_DIR, "raw_apparatus.json")
 
+# Verbatim raw mirror (Extract stage): one JSON per record, ALL buckets, FULL API fields, no
+# reshaping. Decision-independent — downstream stages read from here. Apparatus rides on the full
+# cluster record, so RAW_CLUSTERS_DIR is also the apparatus source.
+RAW_CLUSTERS_DIR = os.path.join(RAW_DIR, "clusters")
+RAW_OPINIONS_DIR = os.path.join(RAW_DIR, "opinions")
+EXTRACT_MANIFEST = os.path.join(RAW_DIR, "extract_manifest.json")  # provenance + reliability log
+
 # processed (gitignored) staging
 REVIEW_CSV = os.path.join(PROCESSED_DIR, "review.csv")
 DUPLICATES_CSV = os.path.join(PROCESSED_DIR, "duplicates.csv")
@@ -49,7 +56,10 @@ DB_DSN = os.environ.get("SCOTUS_DB_DSN")  # postgres connection string (optional
 
 # ---- run parameters --------------------------------------------------------
 AFTER = os.environ.get("SCOTUS_AFTER", "1790-01-01")
-BEFORE = os.environ.get("SCOTUS_BEFORE", "1820-12-31")
+# Generous upper bound (1821, not 1820): date_filed carries term-vs-decision-date drift, so a hard
+# 1820 cutoff can silently clip a vol-18 (5 Wheat) case decided in early 1821. Extract mirrors this
+# superset; precise scoping to reporter volumes 2–18 is a downstream transform concern.
+BEFORE = os.environ.get("SCOTUS_BEFORE", "1821-12-31")
 PIPELINE_VERSION = "2.0"
 
 # Wikipedia "Number of U.S. Supreme Court cases decided by year", 1791-1820 — the
@@ -147,5 +157,12 @@ def git_commit():
 
 
 def ensure_dirs():
-    for d in (RAW_DIR, PROCESSED_DIR, DATASET_DIR, FULLTEXT_DIR):
+    for d in (
+        RAW_DIR,
+        PROCESSED_DIR,
+        DATASET_DIR,
+        FULLTEXT_DIR,
+        RAW_CLUSTERS_DIR,
+        RAW_OPINIONS_DIR,
+    ):
         os.makedirs(d, exist_ok=True)
