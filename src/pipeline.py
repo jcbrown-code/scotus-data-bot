@@ -33,6 +33,36 @@ def _write_csv(path, cols, rows):
         w.writerows([{k: r.get(k, "") for k in cols} for r in rows])
 
 
+def stage_extract():
+    """Extract: mirror clusters + opinions VERBATIM into data/raw/{clusters,opinions}/.
+
+    Decision-independent — scope is `docket__court=scotus` only, all buckets, full API fields, no
+    reshaping. Opinions are fetched for EVERY cluster (not just KEEP). Writes the run manifest and
+    runs cheap coverage/orphan integrity checks over the mirror."""
+    settings.ensure_dirs()
+    manifest = extract.extract(
+        settings.AFTER,
+        settings.BEFORE,
+        settings.get_token(),
+        settings.RAW_CLUSTERS_DIR,
+        settings.RAW_OPINIONS_DIR,
+        settings.EXTRACT_MANIFEST,
+        timestamp=settings.build_timestamp(),
+        git_commit=settings.git_commit(),
+    )
+    print(
+        f"extract: {manifest['n_clusters']} clusters, {manifest['n_opinions']} opinions mirrored",
+        file=sys.stderr,
+    )
+    gaps = extract.verify_coverage(settings.RAW_CLUSTERS_DIR, settings.RAW_OPINIONS_DIR)
+    orphans = extract.verify_no_orphans(settings.RAW_CLUSTERS_DIR, settings.RAW_OPINIONS_DIR)
+    if gaps:
+        print(f"  WARNING: {len(gaps)} clusters missing declared opinions", file=sys.stderr)
+    if orphans:
+        print(f"  WARNING: {len(orphans)} orphan opinions", file=sys.stderr)
+    return manifest
+
+
 def stage_clusters(from_cache=False, validate=False):
     settings.ensure_dirs()
     if from_cache and os.path.exists(settings.RAW_CLUSTERS):
@@ -212,7 +242,9 @@ def stage_apparatus(from_cache=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "--stage", choices=["clusters", "text", "load", "apparatus", "all"], default="all"
+        "--stage",
+        choices=["extract", "clusters", "text", "load", "apparatus", "all"],
+        default="all",
     )
     ap.add_argument(
         "--from-cache", action="store_true", help="reprocess cached clusters, no network"
@@ -221,6 +253,10 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="text stage: only first N clusters")
     args = ap.parse_args()
 
+    # 'extract' is the new decision-independent raw mirror; separate from the legacy 'clusters'/
+    # 'text' fetch path, which will be migrated to read from the mirror. NOT part of 'all' yet.
+    if args.stage == "extract":
+        stage_extract()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
