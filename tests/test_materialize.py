@@ -12,7 +12,7 @@ import sqlite3
 import pytest
 
 from config import settings
-from src import materialize
+from src.transform import materialize
 
 CL = "https://www.courtlistener.com/api/rest/v4"
 

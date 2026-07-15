@@ -20,7 +20,7 @@ import os
 import subprocess
 
 from config import settings
-from src import clean, transform
+from src import clean, transform_legacy
 
 # ---- schema ----------------------------------------------------------------
 
@@ -116,7 +116,7 @@ def _load_clusters(conn, ph, path):
     rows = list(csv.DictReader(open(path)))
     out = []
     for r in rows:
-        vol, page = transform.parse_us_cite(r["us_cite"])
+        vol, page = transform_legacy.parse_us_cite(r["us_cite"])
         out.append(
             (
                 int(r["cluster_id"]),

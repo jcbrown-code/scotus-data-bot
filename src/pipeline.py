@@ -22,7 +22,8 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, materialize, mirror, transform
+from src import apparatus, extract, load, mirror, transform_legacy
+from src.transform import materialize
 
 
 def _write_csv(path, cols, rows):
@@ -132,7 +133,7 @@ def stage_clusters(from_cache=False, validate=False):
         json.dump(raw, open(settings.RAW_CLUSTERS, "w"))
         print(f"cached {len(raw)} raw clusters", file=sys.stderr)
 
-    recs = transform.assign_dedup(transform.classify(raw))
+    recs = transform_legacy.assign_dedup(transform_legacy.classify(raw))
     recs.sort(key=lambda x: (x["dateFiled"], int(x["cluster_id"])))
     keep = [r for r in recs if r["bucket"] == "KEEP" and r["dedup_role"] == "canonical"]
     review = [r for r in recs if r["bucket"] == "REVIEW" and r["dedup_role"] == "canonical"]
@@ -193,7 +194,7 @@ def stage_text(limit=0):
             failures.append({"cluster_id": cid, "caseName": r["caseName"], "error": str(e)})
             fail += 1
             continue
-        ops = [transform.opinion_record(o) for o in api_ops]
+        ops = [transform_legacy.opinion_record(o) for o in api_ops]
         total = sum(o["char_count"] for o in ops)
         rec = {
             "cluster_id": cid,

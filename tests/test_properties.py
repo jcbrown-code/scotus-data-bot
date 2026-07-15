@@ -10,7 +10,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from src import clean
-from src import transform as t
+from src import transform_legacy as t
 
 # ---- clean.clean_opinion -----------------------------------------------------
 
