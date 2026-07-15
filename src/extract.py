@@ -309,10 +309,10 @@ def extract(
         "scope": SCOPE,
         "timestamp": timestamp,
         "git_commit": git_commit,
-        "n_clusters": sum(year["stored"] for year in cluster_log),
-        "n_opinions": sum(entry["opinions"] for entry in opinion_log),
+        "n_clusters": len(_read_ids(clusters_dir)),  # actual mirror size (resume-independent)
+        "n_opinions": len(_read_ids(opinions_dir)),  # actual mirror size (resume-independent)
         "clusters_by_year": cluster_log,
-        "opinions_fetched": len(opinion_log),
+        "opinions_fetched_this_run": sum(entry["opinions"] for entry in opinion_log),
     }
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, sort_keys=True, indent=2)

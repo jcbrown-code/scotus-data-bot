@@ -290,3 +290,24 @@ def test_idempotency_volatile_vs_substantive(tmp_path):
     assert d["volatile"] == ["1.json"]
     assert d["substantive"] == ["2.json"]
     assert d["only_a"] == [] and d["only_b"] == []
+
+
+def test_extract_manifest_counts_full_mirror_not_run(tmp_path, monkeypatch):
+    """Manifest n_clusters/n_opinions describe the MIRROR, not just this run's fetches, so a
+    resumed run (which skips already-stored opinions) still reports the true totals."""
+    cdir = tmp_path / "clusters"
+    odir = tmp_path / "opinions"
+    cdir.mkdir()
+    odir.mkdir()
+    # a prior run already stored cluster 1 + its only opinion
+    extract.store_raw(str(cdir), _cluster(1, subs=["/o/10/"]))
+    extract.store_raw(str(odir), {"id": 10, "cluster": "/c/1/", "type": "t"})
+    # this run: clusters re-fetched (1 page, count=1); opinion 10 present -> resume skips it
+    page = {"results": [_cluster(1, subs=["/o/10/"])], "next": None, "count": 1}
+    _patch_urlopen(monkeypatch, [page])
+    manifest = extract.extract(
+        "1815-01-01", "1815-12-31", "tok", str(cdir), str(odir), str(tmp_path / "m.json")
+    )
+    assert manifest["n_clusters"] == 1
+    assert manifest["n_opinions"] == 1  # from the mirror, not the (empty) resume fetch
+    assert manifest["opinions_fetched_this_run"] == 0
