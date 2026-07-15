@@ -60,6 +60,15 @@ def stage_extract():
         print(f"  WARNING: {len(gaps)} clusters missing declared opinions", file=sys.stderr)
     if orphans:
         print(f"  WARNING: {len(orphans)} orphan opinions", file=sys.stderr)
+    # Cross-check: n_clusters counts the whole mirror; clusters_by_year is this run's window.
+    # A mismatch means the mirror is wider than this run's window; flag it (do not fail).
+    windowed = sum(year["stored"] for year in manifest["clusters_by_year"])
+    if manifest["n_clusters"] != windowed:
+        print(
+            f"  NOTE: n_clusters={manifest['n_clusters']} counts the whole mirror, but this run's "
+            f"window stored {windowed} — the mirror is wider than the run window.",
+            file=sys.stderr,
+        )
     return manifest
 
 

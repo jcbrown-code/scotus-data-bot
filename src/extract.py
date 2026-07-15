@@ -303,6 +303,11 @@ def extract(
     Paths are passed in (not read from settings) so the stage is decoupled and testable."""
     cluster_log = fetch_clusters_raw(after, before, token, clusters_dir)
     opinion_log = fetch_opinions_raw(token, clusters_dir, opinions_dir)
+    # SCOPE NOTE: n_clusters/n_opinions describe the MIRROR on disk (resume- and window-
+    # independent); clusters_by_year and opinions_fetched_this_run describe THIS run's activity.
+    # They coincide only when the run window covers the whole mirror (the normal full-range run);
+    # a narrow re-run against a wider mirror leaves n_clusters above the windowed cluster count,
+    # which pipeline.stage_extract surfaces as a NOTE.
     manifest = {
         "after": after,
         "before": before,
