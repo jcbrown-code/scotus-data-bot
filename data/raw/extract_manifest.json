@@ -1,0 +1,206 @@
+{
+  "after": "1790-01-01",
+  "before": "1821-12-31",
+  "clusters_by_year": [
+    {
+      "api_count": 15,
+      "pages": 1,
+      "stored": 15,
+      "year": 1790
+    },
+    {
+      "api_count": 10,
+      "pages": 1,
+      "stored": 10,
+      "year": 1791
+    },
+    {
+      "api_count": 19,
+      "pages": 1,
+      "stored": 19,
+      "year": 1792
+    },
+    {
+      "api_count": 17,
+      "pages": 1,
+      "stored": 17,
+      "year": 1793
+    },
+    {
+      "api_count": 8,
+      "pages": 1,
+      "stored": 8,
+      "year": 1794
+    },
+    {
+      "api_count": 19,
+      "pages": 1,
+      "stored": 19,
+      "year": 1795
+    },
+    {
+      "api_count": 34,
+      "pages": 2,
+      "stored": 34,
+      "year": 1796
+    },
+    {
+      "api_count": 18,
+      "pages": 1,
+      "stored": 18,
+      "year": 1797
+    },
+    {
+      "api_count": 16,
+      "pages": 1,
+      "stored": 16,
+      "year": 1798
+    },
+    {
+      "api_count": 25,
+      "pages": 2,
+      "stored": 25,
+      "year": 1799
+    },
+    {
+      "api_count": 33,
+      "pages": 2,
+      "stored": 33,
+      "year": 1800
+    },
+    {
+      "api_count": 13,
+      "pages": 1,
+      "stored": 13,
+      "year": 1801
+    },
+    {
+      "api_count": 9,
+      "pages": 1,
+      "stored": 9,
+      "year": 1802
+    },
+    {
+      "api_count": 35,
+      "pages": 2,
+      "stored": 35,
+      "year": 1803
+    },
+    {
+      "api_count": 35,
+      "pages": 2,
+      "stored": 35,
+      "year": 1804
+    },
+    {
+      "api_count": 45,
+      "pages": 3,
+      "stored": 45,
+      "year": 1805
+    },
+    {
+      "api_count": 55,
+      "pages": 3,
+      "stored": 55,
+      "year": 1806
+    },
+    {
+      "api_count": 26,
+      "pages": 2,
+      "stored": 26,
+      "year": 1807
+    },
+    {
+      "api_count": 44,
+      "pages": 3,
+      "stored": 44,
+      "year": 1808
+    },
+    {
+      "api_count": 63,
+      "pages": 4,
+      "stored": 63,
+      "year": 1809
+    },
+    {
+      "api_count": 53,
+      "pages": 3,
+      "stored": 53,
+      "year": 1810
+    },
+    {
+      "api_count": 0,
+      "pages": 1,
+      "stored": 0,
+      "year": 1811
+    },
+    {
+      "api_count": 57,
+      "pages": 3,
+      "stored": 57,
+      "year": 1812
+    },
+    {
+      "api_count": 61,
+      "pages": 4,
+      "stored": 61,
+      "year": 1813
+    },
+    {
+      "api_count": 60,
+      "pages": 3,
+      "stored": 60,
+      "year": 1814
+    },
+    {
+      "api_count": 43,
+      "pages": 3,
+      "stored": 43,
+      "year": 1815
+    },
+    {
+      "api_count": 45,
+      "pages": 3,
+      "stored": 45,
+      "year": 1816
+    },
+    {
+      "api_count": 47,
+      "pages": 3,
+      "stored": 47,
+      "year": 1817
+    },
+    {
+      "api_count": 70,
+      "pages": 4,
+      "stored": 70,
+      "year": 1818
+    },
+    {
+      "api_count": 56,
+      "pages": 3,
+      "stored": 56,
+      "year": 1819
+    },
+    {
+      "api_count": 45,
+      "pages": 3,
+      "stored": 45,
+      "year": 1820
+    },
+    {
+      "api_count": 44,
+      "pages": 3,
+      "stored": 44,
+      "year": 1821
+    }
+  ],
+  "git_commit": "6db3ae9",
+  "n_clusters": 1120,
+  "n_opinions": 1160,
+  "opinions_fetched_this_run": 954,
+  "scope": {
+    "docket__court": "scotus"
+  },
+  "timestamp": "2026-07-15T14:36:38.831669+00:00"
+}

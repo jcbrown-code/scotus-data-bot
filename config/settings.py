@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DATA_DIR = os.path.join(ROOT, "data")
-RAW_DIR = os.path.join(DATA_DIR, "raw")  # gitignored: API dumps
+RAW_DIR = os.path.join(DATA_DIR, "raw")  # raw mirror (Release-distributed) + gitignored caches
 PROCESSED_DIR = os.path.join(DATA_DIR, "processed")  # gitignored: working CSVs + the .sqlite
 DATASET_DIR = os.path.join(ROOT, "dataset")  # committed: small reviewable snapshot
 
@@ -24,11 +24,17 @@ FULLTEXT_DIR = os.path.join(RAW_DIR, "fulltext")
 RAW_APPARATUS = os.path.join(RAW_DIR, "raw_apparatus.json")
 
 # Verbatim raw mirror (Extract stage): one JSON per record, ALL buckets, FULL API fields, no
-# reshaping. Decision-independent — downstream stages read from here. Apparatus rides on the full
-# cluster record, so RAW_CLUSTERS_DIR is also the apparatus source.
+# reshaping. Distributed as a GitHub Release asset (not committed, to keep clones slim); the
+# committed CHECKSUMS.sha256 + extract_manifest.json pin and trace it, and `--stage fetch-mirror`
+# downloads + verifies it (see src/mirror.py). Apparatus rides on the cluster record, so
+# RAW_CLUSTERS_DIR is also the apparatus source.
 RAW_CLUSTERS_DIR = os.path.join(RAW_DIR, "clusters")
 RAW_OPINIONS_DIR = os.path.join(RAW_DIR, "opinions")
-EXTRACT_MANIFEST = os.path.join(RAW_DIR, "extract_manifest.json")  # provenance + reliability log
+EXTRACT_MANIFEST = os.path.join(RAW_DIR, "extract_manifest.json")  # committed provenance
+CHECKSUMS_PATH = os.path.join(RAW_DIR, "CHECKSUMS.sha256")  # committed per-record + archive ledger
+# The raw mirror is a GitHub Release asset; these locate it for --stage fetch-mirror.
+GITHUB_REPO = "jcbrown-code/scotus-data-bot"
+RAW_MIRROR_TAG = "raw-mirror-v1"
 
 # processed (gitignored) staging
 REVIEW_CSV = os.path.join(PROCESSED_DIR, "review.csv")

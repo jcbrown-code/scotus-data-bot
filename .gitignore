@@ -8,8 +8,14 @@ __pycache__/
 .venv/
 venv/
 
-# data: raw API dumps + processed staging are local-only / regenerable
-data/
+# data/: local-only working area. The raw mirror DATA is a GitHub Release asset (gitignored); only
+# its committed anchors — the checksum ledger + provenance manifest — live in git. Everything else
+# under data/ (clusters/, opinions/, the .tar.gz archive, processed/, legacy caches) stays ignored.
+data/*
+!data/raw/
+data/raw/*
+!data/raw/extract_manifest.json
+!data/raw/CHECKSUMS.sha256
 
 # database artifacts (regenerable; distributed via GitHub Release)
 *.sqlite
@@ -33,3 +39,6 @@ dist/
 .coverage
 .coverage.*
 htmlcov/
+
+# macOS (keep out even inside committed dirs — last match wins)
+.DS_Store

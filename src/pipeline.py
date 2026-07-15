@@ -22,7 +22,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, transform
+from src import apparatus, extract, load, mirror, transform
 
 
 def _write_csv(path, cols, rows):
@@ -61,6 +61,35 @@ def stage_extract():
     if orphans:
         print(f"  WARNING: {len(orphans)} orphan opinions", file=sys.stderr)
     return manifest
+
+
+def stage_package_mirror():
+    """Build the deterministic raw-mirror release archive + write the committed CHECKSUMS ledger.
+
+    Run before cutting the GitHub Release: produces the tarball asset and the committed
+    CHECKSUMS.sha256 (per-record + archive hashes; the immutability/tracing anchor)."""
+    archive = os.path.join(settings.RAW_DIR, mirror.ARCHIVE_NAME)
+    digest = mirror.build_archive(settings.RAW_DIR, archive)
+    mirror.write_checksums(settings.RAW_DIR, archive, settings.CHECKSUMS_PATH)
+    print(
+        f"package-mirror: {archive} sha256={digest[:12]} -> {settings.CHECKSUMS_PATH}",
+        file=sys.stderr,
+    )
+
+
+def stage_fetch_mirror():
+    """Download the raw-mirror Release asset, verify it against CHECKSUMS, unpack into data/raw/.
+
+    Reproduces the mirror from the Release instead of re-hitting CourtListener; raises on any hash
+    mismatch (immutability check)."""
+    settings.ensure_dirs()
+    archive = os.path.join(settings.RAW_DIR, mirror.ARCHIVE_NAME)
+    url = (
+        f"https://github.com/{settings.GITHUB_REPO}/releases/download/"
+        f"{settings.RAW_MIRROR_TAG}/{mirror.ARCHIVE_NAME}"
+    )
+    n = mirror.fetch_mirror(url, settings.RAW_DIR, settings.CHECKSUMS_PATH, archive)
+    print(f"fetch-mirror: verified + unpacked {n} records from {url}", file=sys.stderr)
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -243,7 +272,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--stage",
-        choices=["extract", "clusters", "text", "load", "apparatus", "all"],
+        choices=[
+            "extract",
+            "package-mirror",
+            "fetch-mirror",
+            "clusters",
+            "text",
+            "load",
+            "apparatus",
+            "all",
+        ],
         default="all",
     )
     ap.add_argument(
@@ -257,6 +295,10 @@ def main():
     # 'text' fetch path, which will be migrated to read from the mirror. NOT part of 'all' yet.
     if args.stage == "extract":
         stage_extract()
+    if args.stage == "package-mirror":
+        stage_package_mirror()
+    if args.stage == "fetch-mirror":
+        stage_fetch_mirror()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
