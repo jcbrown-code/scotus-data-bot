@@ -154,6 +154,22 @@ def test_run_scope_writes_table(tmp_path):
     assert stored == {1: "true", 2: "false", 3: "true"}
 
 
+def test_scope_table_does_not_block_staging_rebuild(tmp_path):
+    """The derived scope table must never block materialize's clean rebuild.
+
+    materialize drops and recreates the base tables with foreign_keys=ON; a FOREIGN
+    KEY from stg_cluster_scope to stg_clusters would make that drop fail (observed on
+    the real staging DB). Stages own and rebuild their artifacts independently.
+    """
+    db_path = str(tmp_path / "staging.sqlite")
+    _build_staging(db_path)
+    scope.run_scope(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("DROP TABLE stg_clusters")  # must not raise despite stg_cluster_scope
+    conn.close()
+
+
 # ---- data-quality: reconcile against the human answer key --------------------
 
 

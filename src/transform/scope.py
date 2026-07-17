@@ -203,9 +203,12 @@ def write_scope_table(staging_db_path: str, proposals: list[ScopeProposal]) -> N
     conn = sqlite3.connect(staging_db_path)
     try:
         conn.execute("DROP TABLE IF EXISTS stg_cluster_scope")
+        # No FOREIGN KEY to stg_clusters: a derived table must not block the materialize
+        # stage's clean rebuild of the base tables (stages own and rebuild their artifacts
+        # independently). Referential integrity is asserted by the data-quality tests.
         conn.execute(
             "CREATE TABLE stg_cluster_scope ("
-            "cluster_id INTEGER PRIMARY KEY REFERENCES stg_clusters(cluster_id), "
+            "cluster_id INTEGER PRIMARY KEY, "
             "us_volume INTEGER, us_page TEXT, case_name TEXT, scdb_id TEXT, "
             "is_scotus TEXT NOT NULL, evidence TEXT NOT NULL, proposed_disposition TEXT NOT NULL)"
         )
