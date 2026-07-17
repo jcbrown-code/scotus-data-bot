@@ -81,7 +81,7 @@ _DISPOSITION_BY_VERDICT = {
 }
 
 
-def _to_page_number(page) -> int | None:
+def _parse_page_number(page) -> int | None:
     """Leading integer of a us_page string (stored as TEXT; may be None or non-numeric)."""
     if page is None:
         return None
@@ -94,7 +94,7 @@ def _to_page_number(page) -> int | None:
     return int(digits) if digits else None
 
 
-def not_scotus_tells(cluster: dict) -> str:
+def collect_not_scotus_tells(cluster: dict) -> str:
     """Corroborating signs that a Dallas cluster is a lower court's, not SCOTUS.
 
     Attached to a Dallas drop proposal as audit evidence for a human scanning the
@@ -110,7 +110,7 @@ def not_scotus_tells(cluster: dict) -> str:
         tells.append("us_criminal_caption")  # Circuit-PA criminal (e.g. Whiskey Rebellion)
     if "lessee" in name:
         tells.append("lessee_ejectment")  # ejectment / circuit land cases
-    page = _to_page_number(cluster.get("us_page"))
+    page = _parse_page_number(cluster.get("us_page"))
     if cluster.get("us_volume") == 2 and page is not None and page < DALLAS_SCOTUS_START_PAGE:
         tells.append("page_before_scotus_start")
     return ";".join(tells)
@@ -136,7 +136,7 @@ def determine_is_scotus(cluster: dict) -> tuple[IsScotus, str]:
         return IsScotus.TRUE, "scdb_id"
     if cluster.get("cluster_id") in CURATED_SCOTUS_EXCEPTIONS:
         return IsScotus.TRUE, "curated_exception"
-    tells = not_scotus_tells(cluster)
+    tells = collect_not_scotus_tells(cluster)
     return IsScotus.FALSE, f"dallas_not_in_scdb:{tells}" if tells else "dallas_not_in_scdb"
 
 

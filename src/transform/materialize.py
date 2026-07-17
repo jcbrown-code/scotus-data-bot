@@ -33,7 +33,7 @@ CANDIDATE_SOURCE_FIELDS = (
 
 # Per-citation CourtListener ingestion timestamps, stripped from the retained citations array so
 # staging drops the same volatile fields we drop at the record level.
-CITATION_VOLATILE = ("date_created", "date_modified")
+CITATION_VOLATILE_FIELDS = ("date_created", "date_modified")
 
 CLUSTER_COLUMNS = (
     "cluster_id",
@@ -68,7 +68,7 @@ OPINION_COLUMNS = (
 def clean_citations(citations):
     """Return the citations list with each citation's ingestion timestamps removed."""
     return [
-        {k: v for k, v in citation.items() if k not in CITATION_VOLATILE}
+        {k: v for k, v in citation.items() if k not in CITATION_VOLATILE_FIELDS}
         for citation in citations or []
     ]
 
@@ -239,7 +239,7 @@ def _build_insert_sql(table, columns):
     return f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join('?' * len(columns))})"
 
 
-def persist(stg_clusters, stg_opinions, staging_db_path):
+def persist_staging_tables(stg_clusters, stg_opinions, staging_db_path):
     """Write the staging tables to staging_db_path (clean rebuild), with provenance in stg_meta.
 
     Clusters are inserted before opinions so the opinion -> cluster foreign key resolves."""
@@ -279,5 +279,5 @@ def materialize_hierarchy(clusters_dir, opinions_dir, staging_db_path):
     stg_clusters.sort(key=lambda cluster: cluster["cluster_id"])
     stg_opinions.sort(key=lambda opinion: opinion["opinion_id"])
     link_hierarchy(stg_clusters, stg_opinions)
-    persist(stg_clusters, stg_opinions, staging_db_path)
+    persist_staging_tables(stg_clusters, stg_opinions, staging_db_path)
     return stg_clusters, stg_opinions
