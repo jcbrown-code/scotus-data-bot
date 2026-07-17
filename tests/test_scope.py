@@ -1,9 +1,9 @@
 """Tests for src.transform.scope — the is_scotus determination.
 
-Two layers: pure counterfactual unit tests for the predicate, and a data-quality
-test that runs the determination over the real staging DB and reconciles it
+Two layers: pure counterfactual unit tests for the predicate, and data-quality
+tests that run the determination over the real staging DB and reconcile it
 against the human answer key (dataset/review_dispositions.csv). The data-quality
-test skips when staging is absent.
+tests skip when staging is absent.
 """
 
 import csv
@@ -48,11 +48,16 @@ def _cluster(**over):
         (_cluster(us_volume=6, scdb_id="1805-001"), scope.IsScotus.TRUE, "scotus_reporter+scdb"),
         (_cluster(us_volume=6), scope.IsScotus.TRUE, "scotus_only_reporter"),
         (_cluster(us_volume=19, scdb_id="1821-001"), scope.IsScotus.TRUE, "scotus_reporter+scdb"),
-        # Dallas adjudication: only an scdb entry keeps it automatically
+        # Dallas: an scdb entry keeps it; without one it is not a SCOTUS case
         (
             _cluster(us_volume=3, scdb_id="1799-001", case_name="Calder v. Bull"),
             scope.IsScotus.TRUE,
             "scdb_id",
+        ),
+        (
+            _cluster(us_volume=4, us_page="200", case_name="Ordinary Case v. Someone"),
+            scope.IsScotus.FALSE,
+            "dallas_not_in_scdb",
         ),
     ],
 )
@@ -62,21 +67,29 @@ def test_determine_is_scotus_verdicts(cluster, expected_verdict, expected_eviden
     assert evidence == expected_evidence
 
 
-def test_dallas_no_scdb_is_uncertain():
-    verdict, evidence = scope.determine_is_scotus(
-        _cluster(us_volume=4, us_page="200", case_name="Ordinary Case v. Someone", scdb_id=None)
-    )
-    assert verdict == scope.IsScotus.UNCERTAIN
-    assert evidence == "dallas_no_scdb"
-
-
-def test_dallas_respublica_is_uncertain_with_tell():
+def test_dallas_respublica_is_false_with_tell():
     verdict, evidence = scope.determine_is_scotus(
         _cluster(us_volume=2, us_page="298", case_name="Respublica v. Oswald", scdb_id=None)
     )
-    assert verdict == scope.IsScotus.UNCERTAIN
-    assert evidence.startswith("dallas_no_scdb:")
+    assert verdict == scope.IsScotus.FALSE
+    assert evidence.startswith("dallas_not_in_scdb:")
     assert "respublica/commonwealth" in evidence
+
+
+def test_curated_exception_is_true():
+    # Hazlehurst v. United States (4 U.S. 6): genuine, texted, reference-listed, and
+    # its only cluster carries no scdb_id -- the one human-verified override.
+    verdict, evidence = scope.determine_is_scotus(
+        _cluster(
+            cluster_id=6725725,
+            case_name="Hazlehurst v. United States",
+            us_cite="4 U.S. 6",
+            us_volume=4,
+            us_page="6",
+        )
+    )
+    assert verdict == scope.IsScotus.TRUE
+    assert evidence == "curated_exception"
 
 
 # ---- not_scotus_tells --------------------------------------------------------
@@ -132,13 +145,13 @@ def test_run_scope_writes_table(tmp_path):
     proposals = scope.run_scope(db_path)
     verdicts = {p.cluster_id: (p.is_scotus, p.proposed_disposition) for p in proposals}
     assert verdicts[1] == ("true", "keep")
-    assert verdicts[2] == ("uncertain", "review")
+    assert verdicts[2] == ("false", "drop")
     assert verdicts[3] == ("true", "keep")
 
     conn = sqlite3.connect(db_path)
     stored = dict(conn.execute("SELECT cluster_id, is_scotus FROM stg_cluster_scope").fetchall())
     conn.close()
-    assert stored == {1: "true", 2: "uncertain", 3: "true"}
+    assert stored == {1: "true", 2: "false", 3: "true"}
 
 
 # ---- data-quality: reconcile against the human answer key --------------------
@@ -183,19 +196,27 @@ def test_reporter_only_volumes_are_all_true():
     assert stragglers == []
 
 
-def test_review_bucket_matches_reviewers():
-    """Scope flags exactly the human review bucket -- no spurious review items.
+def test_dallas_drops_were_all_human_reviewed():
+    """Every Dallas cluster scope drops was examined by the human review.
 
-    Every cluster scope leaves UNCERTAIN was in fact reviewed by a human (no
-    surprises), and every not-scotus case the humans found lands in that bucket.
-    The reverse containment does NOT hold: a few reviewed DROP-duplicate cases carry
-    an scdb_id and stay TRUE (dedup drops the duplicate later), and the Meade stub is
-    FALSE via the no-cite rule.
+    The Dallas scdb rule is empirical -- it is safe only because the review covered
+    the whole non-scdb set. If a future mirror adds a Dallas cluster the review never
+    saw, this fails rather than silently dropping it.
     """
     by_id = _scope_real_staging_readonly()
-    answer_key = _answer_key()
-    reviewed = set(answer_key)
-    uncertain = {cid for cid, p in by_id.items() if p.is_scotus == "uncertain"}
-    assert uncertain - reviewed == set(), f"flagged but never reviewed: {uncertain - reviewed}"
-    not_scotus = {cid for cid, d in answer_key.items() if d == "DROP-not-scotus"}
-    assert not_scotus - uncertain == set(), f"not-scotus not flagged: {not_scotus - uncertain}"
+    reviewed = set(_answer_key())
+    dropped = {
+        cid for cid, p in by_id.items() if p.us_volume in (2, 3, 4) and p.is_scotus == "false"
+    }
+    assert dropped - reviewed == set(), f"dropped but never reviewed: {dropped - reviewed}"
+
+
+def test_curated_exception_applies_on_real_data():
+    """Hazlehurst (cid 6725725) is kept via the curated exception, not scdb."""
+    by_id = _scope_real_staging_readonly()
+    hazlehurst = by_id.get(6725725)
+    if hazlehurst is None:
+        pytest.skip("Hazlehurst cluster not present in this staging build")
+    assert hazlehurst.is_scotus == "true"
+    assert hazlehurst.evidence == "curated_exception"
+    assert not hazlehurst.scdb_id

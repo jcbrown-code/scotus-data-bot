@@ -124,15 +124,15 @@ def stage_materialize():
 def stage_scope():
     """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
 
-    Reads the staging DB, adjudicates via reporter authority + the reference oracle, and writes
-    the derived stg_cluster_scope table (is_scotus + evidence + proposed disposition). Propose-only
-    and non-destructive: nothing is dropped here; review and a later stage act on the labels."""
+    Reads the staging DB, adjudicates via reporter authority (Cranch/Wheaton were SCOTUS-only)
+    and, within Dallas, scdb_id + the curated exceptions, and writes the derived stg_cluster_scope
+    table (is_scotus + evidence + proposed disposition). Propose-only and non-destructive: nothing
+    is dropped here; a later stage executes the dispositions."""
     proposals = scope.run_scope()
     counts = Counter(proposal.is_scotus for proposal in proposals)
     print(
         f"scope: {len(proposals)} clusters -> "
-        f"{counts.get('true', 0)} scotus / {counts.get('uncertain', 0)} review / "
-        f"{counts.get('false', 0)} out -> stg_cluster_scope",
+        f"{counts.get('true', 0)} scotus / {counts.get('false', 0)} not -> stg_cluster_scope",
         file=sys.stderr,
     )
     return proposals

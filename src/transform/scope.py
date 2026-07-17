@@ -4,28 +4,31 @@ CourtListener's ``docket__court=scotus`` tag is imperfect -- it stamps ``scotus`
 on district, circuit, and state cases too (e.g. Meade v. Deputy Marshal, a
 district-of-Virginia habeas) -- and the HTML header "Supreme Court of United
 States" is stamped on every Dallas reprint, so neither can be trusted. The
-determination rests instead on citation + reporter authority + the SCOTUS-only
-case catalog (``scdb_id``).
+determination is binary and rests on two authorities:
 
-Why reporter authority carries most of the work: the not-SCOTUS contamination is
-confined to Dallas (vols 2-4), the one reporter that covered three courts (PA
-state, U.S. Circuit-PA, and SCOTUS). Cranch (vols 5-13) and Wheaton (14-19) were
-official SCOTUS-only reporters, so any in-scope cluster from vol 5 up is SCOTUS by
-the authority of the reporter it appears in. Only Dallas must be adjudicated, and
-there an ``scdb_id`` (SCDB is a SCOTUS-only catalog) is the one clean automatic
-KEEP. Every Dallas cluster without one is left UNCERTAIN for human review rather
-than kept or dropped by guesswork.
+- **Reporter.** Cranch (vols 5-13) and Wheaton (14-19) were official SCOTUS-only
+  reporters, so any in-scope cluster from vol 5 up is SCOTUS by the authority of
+  the reporter it appears in. Dallas (2-4) covered three courts (PA state, U.S.
+  Circuit-PA, and SCOTUS), so a Dallas citation alone proves nothing.
+- **SCDB, within Dallas.** An ``scdb_id`` (SCDB is a SCOTUS-only catalog) keeps a
+  Dallas cluster; without one the cluster is not a SCOTUS case. This rule is
+  empirical and Dallas-only: the completed human review (dataset/REVIEW_NOTES.md
+  + review_dispositions.csv) examined every one of the 205 non-scdb Dallas
+  clusters and found 168 PA-state/circuit cases, 3 administrative orders (a
+  decisions-only corpus excludes them), and 34 duplicate stubs whose genuine
+  twins survive via their own scdb clusters -- with the single exception curated
+  below. Do NOT generalize the rule past Dallas: CourtListener's scdb tagging is
+  incomplete in vols 5-19 (289 genuine clusters there carry no scdb_id), so
+  scdb-absence means "not SCOTUS" only where the review verified it.
 
-Deliberately out of scope here: matching a cluster's caption against an
-authoritative per-volume case list. That is fuzzy name matching -- a separate
-concern that belongs to the dedup and validate-against-reference stages -- and
-folding it in makes the predicate fragile (two "United States v. ___" captions
-look alike). Scope stays a clean citation/authority/scdb predicate; the reference
-list adjudicates the UNCERTAIN bucket downstream.
+Deliberately out of scope here: matching captions against the per-volume
+reference list. That is fuzzy name matching -- a separate concern for the dedup
+and validate-against-reference stages -- and folding it in makes the predicate
+fragile (two "United States v. ___" captions look alike).
 
 The stage is propose-only and non-destructive: it labels each cluster with an
 ``is_scotus`` verdict, the ``evidence`` behind it, and a proposed disposition
-(keep / drop / review). Nothing is deleted here.
+(keep / drop). Nothing is deleted here.
 """
 
 import sqlite3
@@ -47,24 +50,34 @@ FIRST_SCOTUS_ONLY_VOLUME = 5
 # West v. Barnes); earlier pages are Pennsylvania cases. A corroborating tell only.
 DALLAS_SCOTUS_START_PAGE = 401
 
+# Human-verified overrides of the Dallas scdb rule, keyed by cluster_id. Each entry
+# is a genuine SCOTUS decision whose ONLY CourtListener record carries no scdb_id,
+# verified case-by-case against the per-volume reference list and the record's text.
+# Kept deliberately tiny and explicit -- an exception here must name its evidence.
+CURATED_SCOTUS_EXCEPTIONS = {
+    # In the reference list (vol 4 p6); its one cluster has real Harvard text (a
+    # short writ-of-error report) and no scdb twin exists anywhere in the mirror.
+    # review_dispositions.csv mislabels it "DROP-duplicate: stub/placeholder" -- it
+    # has no duplicate and is not textless. v1 dropped it, which is why the shipped
+    # corpus counted 13 vol-4 cases against the reference's 14.
+    6725725: "Hazlehurst v. United States, 4 U.S. 6 (1799)",
+}
+
 
 class IsScotus(str, Enum):
     """Whether a cluster is a genuine SCOTUS decision. ``str`` so it serializes."""
 
     TRUE = "true"
     FALSE = "false"
-    UNCERTAIN = "uncertain"
 
 
 # Proposed disposition implied by the verdict (executed by a later stage, not here).
 DISPOSITION_KEEP = "keep"
 DISPOSITION_DROP = "drop"
-DISPOSITION_REVIEW = "review"
 
 _DISPOSITION_BY_VERDICT = {
     IsScotus.TRUE: DISPOSITION_KEEP,
     IsScotus.FALSE: DISPOSITION_DROP,
-    IsScotus.UNCERTAIN: DISPOSITION_REVIEW,
 }
 
 
@@ -84,11 +97,10 @@ def _to_page_number(page) -> int | None:
 def not_scotus_tells(cluster: dict) -> str:
     """Corroborating signs that a Dallas cluster is a lower court's, not SCOTUS.
 
-    Attached to a REVIEW proposal as hints for a human; never decisive on their own
-    (a genuine SCOTUS case can carry a "United States v." caption). These are cheap,
-    deterministic caption/page checks -- not name matching. The strongest possible
-    tell, jury-trial language in the opinion text (only a trial court produces it),
-    needs the raw source text and is left to a later text-aware pass.
+    Attached to a Dallas drop proposal as audit evidence for a human scanning the
+    drops; never decisive on their own (a genuine SCOTUS case can carry a
+    "United States v." caption). These are cheap, deterministic caption/page
+    checks -- not name matching.
     """
     tells = []
     name = (cluster.get("case_name") or "").lower()
@@ -105,7 +117,7 @@ def not_scotus_tells(cluster: dict) -> str:
 
 
 def determine_is_scotus(cluster: dict) -> tuple[IsScotus, str]:
-    """Classify one cluster as SCOTUS TRUE / FALSE / UNCERTAIN with an evidence string."""
+    """Classify one cluster as SCOTUS TRUE / FALSE with an evidence string."""
     if cluster.get("us_cite") is None:
         return IsScotus.FALSE, "no_us_reports_cite"  # not in the U.S. Reports at all (Meade)
 
@@ -118,11 +130,14 @@ def determine_is_scotus(cluster: dict) -> tuple[IsScotus, str]:
             return IsScotus.TRUE, "scotus_reporter+scdb"
         return IsScotus.TRUE, "scotus_only_reporter"
 
-    # Dallas (2-4), mixed-court -> adjudicate. Only an scdb catalog entry keeps it here.
+    # Dallas (2-4), mixed-court: an scdb entry (or a curated, human-verified
+    # exception) keeps it; everything else is not a SCOTUS case (see module doc).
     if cluster.get("scdb_id"):
         return IsScotus.TRUE, "scdb_id"
+    if cluster.get("cluster_id") in CURATED_SCOTUS_EXCEPTIONS:
+        return IsScotus.TRUE, "curated_exception"
     tells = not_scotus_tells(cluster)
-    return IsScotus.UNCERTAIN, f"dallas_no_scdb:{tells}" if tells else "dallas_no_scdb"
+    return IsScotus.FALSE, f"dallas_not_in_scdb:{tells}" if tells else "dallas_not_in_scdb"
 
 
 class ScopeProposal(NamedTuple):
