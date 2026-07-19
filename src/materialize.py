@@ -5,6 +5,10 @@ decision-independent staging database (scotus-staging.sqlite) that preserves the
 cluster -> opinion hierarchy with referential integrity and retains every candidate source-text
 field. This stage makes no decisions: no scoping, classification, dedup, bucketing, cleaning,
 source selection, reporter -> volume mapping, or name preference. Downstream stages read from here.
+
+One representation rule: a missing value is stored as NULL, never as CourtListener's empty-string
+sentinel (the API sends ``"scdb_id": ""``, ``"author_str": ""``), so every SQL consumer can test
+missingness with ``IS NULL`` and every Python consumer with ``is None`` / truthiness.
 """
 
 import glob
@@ -80,13 +84,15 @@ def parse_us_cite(citations):
     """Return (volume, page, "V U.S. P") for the first U.S. Reports cite, else (None, None, None).
 
     Matches reporter == "U.S." exactly, so "U.S. LEXIS"/"Dall." are skipped. The API stores volume
-    as a string; it is coerced to int. Reporter-specific cite (Dall./Cranch/Wheat.) -> U.S. volume
-    mapping is a later scope-stage concern, not this stage's."""
+    as a string; it is coerced to int (also in the cite string, so "02" -> "2 U.S. ..."). A U.S.
+    cite with no page is malformed and skipped, not stored as "V U.S. None". Reporter-specific
+    cites (Dall./Cranch/Wheat.) -> U.S. volume mapping is a later scope-stage concern."""
     for citation in citations or []:
         volume = str(citation.get("volume", ""))
-        if citation.get("reporter") == "U.S." and volume.isdigit():
-            page = str(citation.get("page"))
-            return int(volume), page, f"{volume} U.S. {page}"
+        page = citation.get("page")
+        if citation.get("reporter") == "U.S." and volume.isdigit() and str(page or "").strip():
+            page = str(page)
+            return int(volume), page, f"{int(volume)} U.S. {page}"
     return None, None, None
 
 
@@ -117,7 +123,7 @@ def normalize_cluster(raw_cluster):
         "us_volume": volume,
         "us_page": page,
         "us_cite": cite,
-        "scdb_id": raw_cluster.get("scdb_id", ""),
+        "scdb_id": raw_cluster.get("scdb_id") or None,
         "source": raw_cluster.get("source"),
         "citation_count": raw_cluster.get("citation_count"),
         "precedential_status": raw_cluster.get("precedential_status"),
@@ -138,7 +144,7 @@ def normalize_opinion(raw_opinion):
         "opinion_id": raw_opinion["id"],
         "cluster_id": resolve_cluster_id(raw_opinion),
         "type": raw_opinion.get("type"),
-        "author": raw_opinion.get("author_str", ""),
+        "author": raw_opinion.get("author_str") or None,
         "is_ocr_extracted": bool(raw_opinion.get("extracted_by_ocr")),
         "ordering_key": raw_opinion.get("ordering_key"),
         "sources": sources,
@@ -252,7 +258,8 @@ def persist(stg_clusters, stg_opinions, staging_db_path):
         meta = {
             "etl_source_system": "courtlistener",
             "etl_git_commit": settings.git_commit(),
-            "etl_job_id": settings.git_commit(),
+            # commit + build time so re-runs of the same commit get distinct job ids
+            "etl_job_id": f"{settings.git_commit()}@{settings.build_timestamp()}",
             "built_at": settings.build_timestamp(),
             "n_clusters": str(len(stg_clusters)),
             "n_opinions": str(len(stg_opinions)),

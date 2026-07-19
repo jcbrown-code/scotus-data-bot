@@ -6,10 +6,12 @@ determinism, decision-independence, round-trip, citation-timestamp stripping, xm
 """
 
 import json
+import os
 import sqlite3
 
 import pytest
 
+from config import settings
 from src import materialize
 
 CL = "https://www.courtlistener.com/api/rest/v4"
@@ -168,6 +170,12 @@ def test_blank_source_field_not_retained(tmp_path):
         ),
         ([{"reporter": "Dall.", "volume": "2", "page": "1"}], (None, None, None)),
         ([], (None, None, None)),
+        # a U.S. cite with no page is malformed -> skipped, not stored as "12 U.S. None"
+        ([{"reporter": "U.S.", "volume": "12"}], (None, None, None)),
+        ([{"reporter": "U.S.", "volume": "12", "page": None}], (None, None, None)),
+        ([{"reporter": "U.S.", "volume": "12", "page": ""}], (None, None, None)),
+        # volume is coerced to int in the cite string too ("02" -> "2 U.S. 5")
+        ([{"reporter": "U.S.", "volume": "02", "page": "5"}], (2, "5", "2 U.S. 5")),
     ],
 )
 def test_parse_us_cite(citations, expected):
@@ -181,13 +189,15 @@ def test_resolve_cluster_id_prefers_int_then_url():
     assert materialize.resolve_cluster_id({"cluster": f"{CL}/clusters/777/"}) == 777
 
 
-def test_normalize_cluster_name_and_scdb(tmp_path):
+def test_normalize_missing_values_to_null(tmp_path):
+    # CL's empty-string sentinels are stored as NULL: one missing-value convention.
     clusters = [_raw_cluster(1, [10], case_name_full="", scdb_id="")]
-    opinions = [_raw_opinion(10, 1)]
-    stg_clusters, _, _ = _run(tmp_path, clusters, opinions)
+    opinions = [_raw_opinion(10, 1, author_str="")]
+    stg_clusters, stg_opinions, _ = _run(tmp_path, clusters, opinions)
     assert stg_clusters[0]["case_name"] == "Case 1"
     assert stg_clusters[0]["case_name_full"] is None  # "" -> None
-    assert stg_clusters[0]["scdb_id"] == ""
+    assert stg_clusters[0]["scdb_id"] is None  # "" -> None
+    assert stg_opinions[0]["author"] is None  # "" -> None
 
 
 # ---- 6. determinism --------------------------------------------------------
@@ -286,3 +296,30 @@ def test_xml_scan_excluded(tmp_path):
     schema_cols = {r[1] for r in conn.execute("PRAGMA table_info(stg_opinions)")}
     conn.close()
     assert "source_xml_scan" not in schema_cols
+
+
+# ---- data-quality: the missing-value convention holds in the built staging DB ----
+
+
+def test_staging_has_no_empty_string_sentinels():
+    """Missing = NULL everywhere: no TEXT column carries a '' sentinel.
+
+    Guards the one representation rule of the staging DB, so SQL consumers can
+    rely on IS NULL. Skips when staging has not been built.
+    """
+    if not os.path.exists(settings.STAGING_DB_PATH):
+        pytest.skip("staging DB missing; run the materialize stage first")
+    conn = sqlite3.connect(settings.STAGING_DB_PATH)
+    try:
+        offenders = []
+        for table in ("stg_clusters", "stg_opinions"):
+            for _cid, name, column_type, *_rest in conn.execute(f"PRAGMA table_info({table})"):
+                if column_type == "TEXT":
+                    count = conn.execute(
+                        f"SELECT COUNT(*) FROM {table} WHERE {name} = ''"  # noqa: S608
+                    ).fetchone()[0]
+                    if count:
+                        offenders.append(f"{table}.{name}: {count}")
+    finally:
+        conn.close()
+    assert offenders == [], f"empty-string sentinels found: {offenders}"
