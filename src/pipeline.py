@@ -22,7 +22,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, mirror, transform
+from src import apparatus, extract, load, materialize, mirror, transform
 
 
 def _write_csv(path, cols, rows):
@@ -99,6 +99,25 @@ def stage_fetch_mirror():
     )
     n = mirror.fetch_mirror(url, settings.RAW_DIR, settings.CHECKSUMS_PATH, archive)
     print(f"fetch-mirror: verified + unpacked {n} records from {url}", file=sys.stderr)
+
+
+def stage_materialize():
+    """Transform stage 1: normalize the raw mirror into the cluster -> opinion staging DB.
+
+    Decision-independent — preserves the 1:many hierarchy with referential integrity, retains every
+    candidate source field, and makes no scope/dedup/clean decision."""
+    settings.ensure_dirs()
+    stg_clusters, stg_opinions = materialize.materialize_hierarchy(
+        settings.RAW_CLUSTERS_DIR,
+        settings.RAW_OPINIONS_DIR,
+        settings.STAGING_DB_PATH,
+    )
+    print(
+        f"materialize: {len(stg_clusters)} clusters, {len(stg_opinions)} opinions "
+        f"-> {settings.STAGING_DB_PATH}",
+        file=sys.stderr,
+    )
+    return stg_clusters, stg_opinions
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -285,6 +304,7 @@ def main():
             "extract",
             "package-mirror",
             "fetch-mirror",
+            "materialize",
             "clusters",
             "text",
             "load",
@@ -308,6 +328,8 @@ def main():
         stage_package_mirror()
     if args.stage == "fetch-mirror":
         stage_fetch_mirror()
+    if args.stage == "materialize":
+        stage_materialize()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):

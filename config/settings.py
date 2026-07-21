@@ -58,6 +58,11 @@ DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.s
 APPARATUS_DB_PATH = os.environ.get(
     "SCOTUS_APPARATUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-apparatus.sqlite")
 )
+# Transform staging DB: the normalized cluster -> opinion hierarchy from the raw mirror
+# (decision-independent; downstream Transform stages read from here). See src/materialize.py.
+STAGING_DB_PATH = os.environ.get(
+    "SCOTUS_STAGING_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-staging.sqlite")
+)
 DB_DSN = os.environ.get("SCOTUS_DB_DSN")  # postgres connection string (optional)
 
 # ---- run parameters --------------------------------------------------------
