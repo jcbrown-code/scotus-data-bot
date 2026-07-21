@@ -203,6 +203,39 @@ def test_normalize_missing_values_to_null(tmp_path):
     assert stg_opinions[0]["author"] is None  # "" -> None
 
 
+def test_rematerialize_clears_stale_derived_tables(tmp_path):
+    """A rematerialize wipes downstream derived tables so none survives stale.
+
+    Reproduces the reported failure: a downstream stage writes stg_cluster_scope for
+    the current clusters; rematerializing a different mirror must not leave scope
+    rows for clusters that no longer exist (the derived table has no FK to block the
+    base drop). materialize rebuilds the whole DB to a blank slate, so the derived
+    table is simply gone -- a loud signal to rerun that stage."""
+    db = str(tmp_path / "scotus-staging.sqlite")
+    c1, o1 = _write_mirror(
+        tmp_path / "m1", [_make_raw_cluster(1, [10])], [_make_raw_opinion(10, 1)]
+    )
+    materialize.materialize_hierarchy(c1, o1, db)
+    # a downstream stage annotates the base with a derived table
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE stg_cluster_scope (cluster_id INTEGER)")
+    conn.execute("INSERT INTO stg_cluster_scope VALUES (1)")
+    conn.commit()
+    conn.close()
+    # rematerialize a different mirror (cluster 2 only) into the same DB
+    c2, o2 = _write_mirror(
+        tmp_path / "m2", [_make_raw_cluster(2, [20])], [_make_raw_opinion(20, 2)]
+    )
+    materialize.materialize_hierarchy(c2, o2, db)
+    conn = sqlite3.connect(db)
+    try:
+        assert conn.execute("SELECT cluster_id FROM stg_clusters").fetchall() == [(2,)]
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "stg_cluster_scope" not in tables  # stale derived table cleared, not left behind
+    finally:
+        conn.close()
+
+
 # ---- 6. determinism --------------------------------------------------------
 
 

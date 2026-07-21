@@ -9,6 +9,10 @@ source selection, reporter -> volume mapping, or name preference. Downstream sta
 One representation rule: a missing value is stored as NULL, never as CourtListener's empty-string
 sentinel (the API sends ``"scdb_id": ""``, ``"author_str": ""``), so every SQL consumer can test
 missingness with ``IS NULL`` and every Python consumer with ``is None`` / truthiness.
+
+The rebuild is wholesale: it clears the entire staging database to a blank slate, so a derived
+table a downstream stage wrote (e.g. stg_cluster_scope) never survives stale against a fresh base.
+Each downstream stage rebuilds its own artifact after a rematerialize.
 """
 
 import glob
@@ -180,11 +184,27 @@ def link_hierarchy(stg_clusters, stg_opinions):
 # ---- persist ---------------------------------------------------------------
 
 
+def _reset_all_tables(conn):
+    """Drop every table so a base rebuild leaves the database a blank slate.
+
+    materialize owns the staging database and rebuilds it wholesale. Dropping only
+    its own base tables would leave a downstream stage's derived table (e.g.
+    stg_cluster_scope) pointing at clusters that no longer exist -- stale rows for
+    deleted clusters, none for new ones. Clearing every table (materialize never
+    needs to know the derived names) forces each downstream stage to rebuild its own
+    artifact; a table that is simply absent is a loud signal to rerun that stage,
+    where a stale one is silent corruption. FK enforcement is off so a base table
+    still referenced by some derived table can be dropped regardless of order."""
+    conn.execute("PRAGMA foreign_keys = OFF")
+    for (name,) in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchall():
+        conn.execute(f'DROP TABLE IF EXISTS "{name}"')
+    conn.execute("PRAGMA foreign_keys = ON")
+
+
 def _create_tables(conn):
-    """Drop and recreate the staging tables for a clean rebuild."""
-    conn.execute("DROP TABLE IF EXISTS stg_opinions")
-    conn.execute("DROP TABLE IF EXISTS stg_clusters")
-    conn.execute("DROP TABLE IF EXISTS stg_meta")
+    """Create the staging tables (call after _reset_all_tables clears the database)."""
     conn.execute(
         "CREATE TABLE stg_clusters ("
         "cluster_id INTEGER PRIMARY KEY, case_name TEXT NOT NULL, case_name_full TEXT, "
@@ -245,6 +265,7 @@ def persist_staging_tables(stg_clusters, stg_opinions, staging_db_path):
     Clusters are inserted before opinions so the opinion -> cluster foreign key resolves."""
     conn = sqlite3.connect(staging_db_path)
     try:
+        _reset_all_tables(conn)  # blank slate: clears stale downstream derived tables too
         conn.execute("PRAGMA foreign_keys = ON")
         _create_tables(conn)
         conn.executemany(
