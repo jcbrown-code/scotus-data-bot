@@ -7,7 +7,7 @@ import json
 
 from config import settings
 from src import clean
-from src import transform as t
+from src import transform_legacy as t
 
 
 def _scalar(db, sql, params=()):

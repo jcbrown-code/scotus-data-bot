@@ -2,7 +2,7 @@
 
 import pytest
 
-from src import transform as t
+from src import transform_legacy as t
 
 
 @pytest.mark.parametrize(

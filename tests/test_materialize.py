@@ -12,12 +12,12 @@ import sqlite3
 import pytest
 
 from config import settings
-from src import materialize
+from src.transform import materialize
 
-CL = "https://www.courtlistener.com/api/rest/v4"
+CL_API_URL = "https://www.courtlistener.com/api/rest/v4"
 
 
-def _raw_cluster(cluster_id, sub_opinion_ids=(), citations=None, **over):
+def _make_raw_cluster(cluster_id, sub_opinion_ids=(), citations=None, **over):
     rec = {
         "id": cluster_id,
         "case_name": f"Case {cluster_id}",
@@ -30,17 +30,17 @@ def _raw_cluster(cluster_id, sub_opinion_ids=(), citations=None, **over):
         "source": "L",
         "citation_count": 0,
         "precedential_status": "Published",
-        "sub_opinions": [f"{CL}/opinions/{i}/" for i in sub_opinion_ids],
+        "sub_opinions": [f"{CL_API_URL}/opinions/{i}/" for i in sub_opinion_ids],
     }
     rec.update(over)
     return rec
 
 
-def _raw_opinion(opinion_id, cluster_id, sources=None, **over):
+def _make_raw_opinion(opinion_id, cluster_id, sources=None, **over):
     rec = {
         "id": opinion_id,
         "cluster_id": cluster_id,
-        "cluster": f"{CL}/clusters/{cluster_id}/",
+        "cluster": f"{CL_API_URL}/clusters/{cluster_id}/",
         "type": "010combined",
         "author_str": "",
         "extracted_by_ocr": False,
@@ -63,7 +63,7 @@ def _write_mirror(tmp_path, clusters, opinions):
     return str(cdir), str(odir)
 
 
-def _run(tmp_path, clusters, opinions):
+def _run_materialize(tmp_path, clusters, opinions):
     cdir, odir = _write_mirror(tmp_path, clusters, opinions)
     db = str(tmp_path / "scotus-staging.sqlite")
     stg_clusters, stg_opinions = materialize.materialize_hierarchy(cdir, odir, db)
@@ -74,9 +74,9 @@ def _run(tmp_path, clusters, opinions):
 
 
 def test_count_conservation(tmp_path):
-    clusters = [_raw_cluster(1, [10]), _raw_cluster(2, [20, 21])]
-    opinions = [_raw_opinion(10, 1), _raw_opinion(20, 2), _raw_opinion(21, 2)]
-    stg_clusters, stg_opinions, db = _run(tmp_path, clusters, opinions)
+    clusters = [_make_raw_cluster(1, [10]), _make_raw_cluster(2, [20, 21])]
+    opinions = [_make_raw_opinion(10, 1), _make_raw_opinion(20, 2), _make_raw_opinion(21, 2)]
+    stg_clusters, stg_opinions, db = _run_materialize(tmp_path, clusters, opinions)
     assert len(stg_clusters) == 2
     assert len(stg_opinions) == 3
     conn = sqlite3.connect(db)
@@ -89,33 +89,33 @@ def test_count_conservation(tmp_path):
 
 
 def test_orphan_opinion_raises(tmp_path):
-    clusters = [_raw_cluster(1, [10])]
-    opinions = [_raw_opinion(10, 1), _raw_opinion(99, 777)]  # 777 has no cluster
+    clusters = [_make_raw_cluster(1, [10])]
+    opinions = [_make_raw_opinion(10, 1), _make_raw_opinion(99, 777)]  # 777 has no cluster
     with pytest.raises(RuntimeError, match="orphan opinion 99"):
-        _run(tmp_path, clusters, opinions)
+        _run_materialize(tmp_path, clusters, opinions)
 
 
 # ---- 3. coverage + n_opinions cascade --------------------------------------
 
 
 def test_coverage_and_n_opinions(tmp_path):
-    clusters = [_raw_cluster(1, [10]), _raw_cluster(2, [20, 21])]  # 2 is seriatim
+    clusters = [_make_raw_cluster(1, [10]), _make_raw_cluster(2, [20, 21])]  # 2 is seriatim
     opinions = [
-        _raw_opinion(10, 1),
-        _raw_opinion(20, 2, type="020lead"),
-        _raw_opinion(21, 2, type="030concurrence"),
+        _make_raw_opinion(10, 1),
+        _make_raw_opinion(20, 2, type="020lead"),
+        _make_raw_opinion(21, 2, type="030concurrence"),
     ]
-    stg_clusters, _, _ = _run(tmp_path, clusters, opinions)
+    stg_clusters, _, _ = _run_materialize(tmp_path, clusters, opinions)
     by_id = {c["cluster_id"]: c for c in stg_clusters}
     assert by_id[1]["n_opinions"] == 1
     assert by_id[2]["n_opinions"] == 2  # seriatim: >1
 
 
 def test_declared_but_unmaterialized_raises(tmp_path):
-    clusters = [_raw_cluster(1, [10, 11])]  # declares 11 but we only provide 10
-    opinions = [_raw_opinion(10, 1)]
+    clusters = [_make_raw_cluster(1, [10, 11])]  # declares 11 but we only provide 10
+    opinions = [_make_raw_opinion(10, 1)]
     with pytest.raises(RuntimeError, match="unmaterialized sub_opinions"):
-        _run(tmp_path, clusters, opinions)
+        _run_materialize(tmp_path, clusters, opinions)
 
 
 # ---- 4. source-field retention (anti-best_text) ----------------------------
@@ -127,9 +127,9 @@ def test_all_source_fields_retained(tmp_path):
         "xml_harvard": "<x>H</x>",
         "html_with_citations": "<p>C</p>",
     }
-    clusters = [_raw_cluster(1, [10])]
-    opinions = [_raw_opinion(10, 1, sources=sources)]
-    _, _, db = _run(tmp_path, clusters, opinions)
+    clusters = [_make_raw_cluster(1, [10])]
+    opinions = [_make_raw_opinion(10, 1, sources=sources)]
+    _, _, db = _run_materialize(tmp_path, clusters, opinions)
     conn = sqlite3.connect(db)
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM stg_opinions WHERE opinion_id=10").fetchone()
@@ -147,9 +147,9 @@ def test_all_source_fields_retained(tmp_path):
 
 
 def test_blank_source_field_not_retained(tmp_path):
-    clusters = [_raw_cluster(1, [10])]
-    opinions = [_raw_opinion(10, 1, sources={"html_lawbox": "  ", "xml_harvard": "real"})]
-    stg_clusters, stg_opinions, _ = _run(tmp_path, clusters, opinions)
+    clusters = [_make_raw_cluster(1, [10])]
+    opinions = [_make_raw_opinion(10, 1, sources={"html_lawbox": "  ", "xml_harvard": "real"})]
+    stg_clusters, stg_opinions, _ = _run_materialize(tmp_path, clusters, opinions)
     assert stg_opinions[0]["sources"] == {"xml_harvard": "real"}
 
 
@@ -184,20 +184,56 @@ def test_parse_us_cite(citations, expected):
 
 def test_resolve_cluster_id_prefers_int_then_url():
     assert (
-        materialize.resolve_cluster_id({"cluster_id": 55, "cluster": f"{CL}/clusters/999/"}) == 55
+        materialize.resolve_cluster_id(
+            {"cluster_id": 55, "cluster": f"{CL_API_URL}/clusters/999/"}
+        )
+        == 55
     )
-    assert materialize.resolve_cluster_id({"cluster": f"{CL}/clusters/777/"}) == 777
+    assert materialize.resolve_cluster_id({"cluster": f"{CL_API_URL}/clusters/777/"}) == 777
 
 
 def test_normalize_missing_values_to_null(tmp_path):
-    # CL's empty-string sentinels are stored as NULL: one missing-value convention.
-    clusters = [_raw_cluster(1, [10], case_name_full="", scdb_id="")]
-    opinions = [_raw_opinion(10, 1, author_str="")]
-    stg_clusters, stg_opinions, _ = _run(tmp_path, clusters, opinions)
+    # CourtListener's empty-string sentinels are stored as NULL: one missing-value convention.
+    clusters = [_make_raw_cluster(1, [10], case_name_full="", scdb_id="")]
+    opinions = [_make_raw_opinion(10, 1, author_str="")]
+    stg_clusters, stg_opinions, _ = _run_materialize(tmp_path, clusters, opinions)
     assert stg_clusters[0]["case_name"] == "Case 1"
     assert stg_clusters[0]["case_name_full"] is None  # "" -> None
     assert stg_clusters[0]["scdb_id"] is None  # "" -> None
     assert stg_opinions[0]["author"] is None  # "" -> None
+
+
+def test_rematerialize_clears_stale_derived_tables(tmp_path):
+    """A rematerialize wipes downstream derived tables so none survives stale.
+
+    Reproduces the reported failure: a downstream stage writes stg_cluster_scope for
+    the current clusters; rematerializing a different mirror must not leave scope
+    rows for clusters that no longer exist (the derived table has no FK to block the
+    base drop). materialize rebuilds the whole DB to a blank slate, so the derived
+    table is simply gone -- a loud signal to rerun that stage."""
+    db = str(tmp_path / "scotus-staging.sqlite")
+    c1, o1 = _write_mirror(
+        tmp_path / "m1", [_make_raw_cluster(1, [10])], [_make_raw_opinion(10, 1)]
+    )
+    materialize.materialize_hierarchy(c1, o1, db)
+    # a downstream stage annotates the base with a derived table
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE stg_cluster_scope (cluster_id INTEGER)")
+    conn.execute("INSERT INTO stg_cluster_scope VALUES (1)")
+    conn.commit()
+    conn.close()
+    # rematerialize a different mirror (cluster 2 only) into the same DB
+    c2, o2 = _write_mirror(
+        tmp_path / "m2", [_make_raw_cluster(2, [20])], [_make_raw_opinion(20, 2)]
+    )
+    materialize.materialize_hierarchy(c2, o2, db)
+    conn = sqlite3.connect(db)
+    try:
+        assert conn.execute("SELECT cluster_id FROM stg_clusters").fetchall() == [(2,)]
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "stg_cluster_scope" not in tables  # stale derived table cleared, not left behind
+    finally:
+        conn.close()
 
 
 # ---- 6. determinism --------------------------------------------------------
@@ -205,10 +241,10 @@ def test_normalize_missing_values_to_null(tmp_path):
 
 def test_determinism(tmp_path, monkeypatch):
     monkeypatch.setenv("SCOTUS_BUILD_TIMESTAMP", "2026-01-01T00:00:00+00:00")
-    clusters = [_raw_cluster(2, [20]), _raw_cluster(1, [10])]  # unsorted input
-    opinions = [_raw_opinion(20, 2), _raw_opinion(10, 1)]
-    a_clusters, a_opinions, a_db = _run(tmp_path / "a", clusters, opinions)
-    b_clusters, b_opinions, b_db = _run(tmp_path / "b", clusters, opinions)
+    clusters = [_make_raw_cluster(2, [20]), _make_raw_cluster(1, [10])]  # unsorted input
+    opinions = [_make_raw_opinion(20, 2), _make_raw_opinion(10, 1)]
+    a_clusters, a_opinions, a_db = _run_materialize(tmp_path / "a", clusters, opinions)
+    b_clusters, b_opinions, b_db = _run_materialize(tmp_path / "b", clusters, opinions)
     assert a_clusters == b_clusters and a_opinions == b_opinions
     assert [c["cluster_id"] for c in a_clusters] == [1, 2]  # numeric order imposed
 
@@ -226,7 +262,7 @@ def test_determinism(tmp_path, monkeypatch):
 
 
 def test_no_decision_columns(tmp_path):
-    _, _, db = _run(tmp_path, [_raw_cluster(1, [10])], [_raw_opinion(10, 1)])
+    _, _, db = _run_materialize(tmp_path, [_make_raw_cluster(1, [10])], [_make_raw_opinion(10, 1)])
     conn = sqlite3.connect(db)
     cols = {r[1] for r in conn.execute("PRAGMA table_info(stg_clusters)")}
     cols |= {r[1] for r in conn.execute("PRAGMA table_info(stg_opinions)")}
@@ -247,9 +283,9 @@ def test_no_decision_columns(tmp_path):
 
 
 def test_round_trip(tmp_path):
-    clusters = [_raw_cluster(1, [10])]
-    opinions = [_raw_opinion(10, 1, sources={"html_lawbox": "L"})]
-    stg_clusters, stg_opinions, db = _run(tmp_path, clusters, opinions)
+    clusters = [_make_raw_cluster(1, [10])]
+    opinions = [_make_raw_opinion(10, 1, sources={"html_lawbox": "L"})]
+    stg_clusters, stg_opinions, db = _run_materialize(tmp_path, clusters, opinions)
     conn = sqlite3.connect(db)
     conn.row_factory = sqlite3.Row
     crow = conn.execute("SELECT * FROM stg_clusters WHERE cluster_id=1").fetchone()
@@ -279,17 +315,21 @@ def test_citation_timestamps_stripped(tmp_path):
             "date_modified": "2025-09-25T00:00:00Z",
         }
     ]
-    clusters = [_raw_cluster(1, [10], citations=citations)]
-    opinions = [_raw_opinion(10, 1)]
-    stg_clusters, _, _ = _run(tmp_path, clusters, opinions)
+    clusters = [_make_raw_cluster(1, [10], citations=citations)]
+    opinions = [_make_raw_opinion(10, 1)]
+    stg_clusters, _, _ = _run_materialize(tmp_path, clusters, opinions)
     stored = stg_clusters[0]["citations"][0]
     assert "date_created" not in stored and "date_modified" not in stored
     assert stored == {"reporter": "U.S.", "volume": "12", "page": "100"}  # rest retained
 
 
 def test_xml_scan_excluded(tmp_path):
-    opinions = [_raw_opinion(10, 1, sources={"html_lawbox": "L"}, xml_scan="<scan>noise</scan>")]
-    stg_clusters, stg_opinions, db = _run(tmp_path, [_raw_cluster(1, [10])], opinions)
+    opinions = [
+        _make_raw_opinion(10, 1, sources={"html_lawbox": "L"}, xml_scan="<scan>noise</scan>")
+    ]
+    stg_clusters, stg_opinions, db = _run_materialize(
+        tmp_path, [_make_raw_cluster(1, [10])], opinions
+    )
     assert "xml_scan" not in stg_opinions[0]["sources"]
     assert "source_xml_scan" not in materialize.OPINION_COLUMNS
     conn = sqlite3.connect(db)

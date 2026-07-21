@@ -22,7 +22,8 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, materialize, mirror, transform
+from src import apparatus, extract, load, mirror, transform_legacy
+from src.transform import materialize, scope
 
 
 def _write_csv(path, cols, rows):
@@ -120,6 +121,23 @@ def stage_materialize():
     return stg_clusters, stg_opinions
 
 
+def stage_scope():
+    """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
+
+    Reads the staging DB, adjudicates via reporter authority (Cranch/Wheaton were SCOTUS-only)
+    and, within Dallas, scdb_id + the curated exceptions, and writes the derived stg_cluster_scope
+    table (is_scotus + evidence + proposed disposition). Propose-only and non-destructive: nothing
+    is dropped here; a later stage executes the dispositions."""
+    proposals = scope.run_scope()
+    counts = Counter(proposal.is_scotus for proposal in proposals)
+    print(
+        f"scope: {len(proposals)} clusters -> "
+        f"{counts.get('true', 0)} scotus / {counts.get('false', 0)} not -> stg_cluster_scope",
+        file=sys.stderr,
+    )
+    return proposals
+
+
 def stage_clusters(from_cache=False, validate=False):
     settings.ensure_dirs()
     if from_cache and os.path.exists(settings.RAW_CLUSTERS):
@@ -132,7 +150,7 @@ def stage_clusters(from_cache=False, validate=False):
         json.dump(raw, open(settings.RAW_CLUSTERS, "w"))
         print(f"cached {len(raw)} raw clusters", file=sys.stderr)
 
-    recs = transform.assign_dedup(transform.classify(raw))
+    recs = transform_legacy.assign_dedup(transform_legacy.classify(raw))
     recs.sort(key=lambda x: (x["dateFiled"], int(x["cluster_id"])))
     keep = [r for r in recs if r["bucket"] == "KEEP" and r["dedup_role"] == "canonical"]
     review = [r for r in recs if r["bucket"] == "REVIEW" and r["dedup_role"] == "canonical"]
@@ -193,7 +211,7 @@ def stage_text(limit=0):
             failures.append({"cluster_id": cid, "caseName": r["caseName"], "error": str(e)})
             fail += 1
             continue
-        ops = [transform.opinion_record(o) for o in api_ops]
+        ops = [transform_legacy.opinion_record(o) for o in api_ops]
         total = sum(o["char_count"] for o in ops)
         rec = {
             "cluster_id": cid,
@@ -305,6 +323,7 @@ def main():
             "package-mirror",
             "fetch-mirror",
             "materialize",
+            "scope",
             "clusters",
             "text",
             "load",
@@ -330,6 +349,8 @@ def main():
         stage_fetch_mirror()
     if args.stage == "materialize":
         stage_materialize()
+    if args.stage == "scope":
+        stage_scope()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
