@@ -123,7 +123,7 @@ def stage_materialize():
 
 
 def stage_scope():
-    """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
+    """Transform stage 2: propose, per cluster, whether it is a SCOTUS decision.
 
     Reads the staging DB and the human-review ledger (dataset/scope_review.csv, authoritative),
     adjudicates the rest via reporter authority (Cranch/Wheaton were SCOTUS-only) and, within

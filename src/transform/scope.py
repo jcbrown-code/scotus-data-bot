@@ -1,4 +1,4 @@
-"""Transform · scope: decide, per cluster, whether it is a genuine SCOTUS decision.
+"""Transform · scope: decide, per cluster, whether it is a SCOTUS decision.
 
 CourtListener's ``docket__court=scotus`` tag is imperfect -- it stamps ``scotus``
 on district, circuit, and state cases too (e.g. Meade v. Deputy Marshal, a
@@ -21,7 +21,7 @@ Absent one, an automated rule decides, resting on two authorities:
   authority for which Dallas cases are decisions; the validate stage reconciles the
   corpus against it, so any decision the reference lists but scope drops surfaces there
   for human review and is then recorded in the ledger. Do NOT generalize the rule past
-  Dallas: CourtListener's scdb tagging is incomplete in vols 5-19 (289 genuine clusters
+  Dallas: CourtListener's scdb tagging is incomplete in vols 5-19 (289 SCOTUS clusters
   there carry no scdb_id), where reporter authority keeps them instead.
 
 Deliberately out of scope here: matching captions against the per-volume
@@ -60,7 +60,7 @@ REVIEW_DROP = "drop"
 
 
 class IsScotus(str, Enum):
-    """Whether a cluster is a genuine SCOTUS decision. ``str`` so it serializes."""
+    """Whether a cluster is a SCOTUS decision. ``str`` so it serializes."""
 
     TRUE = "true"
     FALSE = "false"
@@ -93,7 +93,7 @@ def collect_not_scotus_tells(cluster: dict) -> str:
     """Corroborating signs that a Dallas cluster is a lower court's, not SCOTUS.
 
     Attached to a Dallas drop proposal as audit evidence for a human scanning the
-    drops; never decisive on their own (a genuine SCOTUS case can carry a
+    drops; never decisive on their own (a SCOTUS case can carry a
     "United States v." caption). These are cheap, deterministic caption/page
     checks -- not name matching.
     """
@@ -134,7 +134,7 @@ def determine_is_scotus(cluster: dict, review: dict | None = None) -> tuple[IsSc
             return IsScotus.TRUE, "scotus_reporter+scdb"
         return IsScotus.TRUE, "scotus_only_reporter"
 
-    # Dallas (2-4), mixed-court: an scdb entry keeps it; a genuine non-scdb decision is
+    # Dallas (2-4), mixed-court: an scdb entry keeps it; a non-scdb SCOTUS decision is
     # kept only via the human-review ledger (handled above); everything else drops.
     if cluster.get("scdb_id"):
         return IsScotus.TRUE, "scdb_id"

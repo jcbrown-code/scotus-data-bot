@@ -4,7 +4,7 @@ Three layers, built from what scope is *supposed* to do:
   1. the automated rule (citation + reporter authority + Dallas scdb),
   2. the human-review ledger, which must OVERRIDE the automated rule either way,
   3. outcome tests over the real staging DB (skip when absent) checking scope keeps
-     genuine decisions and drops non-decisions -- anchored on hand-picked landmark
+     SCOTUS decisions and drops lower-court cases -- anchored on hand-picked landmark
      cases and structural invariants, not a self-fulfilling replay of a fixture.
 """
 
@@ -119,7 +119,7 @@ def test_load_scope_review_parses_dispositions(tmp_path):
     path = tmp_path / "review.csv"
     path.write_text(
         "cluster_id,us_cite,case_name,disposition,rationale\n"
-        "42,3 U.S. 1,Foo v. Bar,keep,a genuine decision\n"
+        "42,3 U.S. 1,Foo v. Bar,keep,a SCOTUS decision\n"
         "43,3 U.S. 2,Baz v. Qux,drop,not scotus\n"
     )
     assert scope.load_scope_review(str(path)) == {42: "keep", 43: "drop"}
@@ -139,7 +139,7 @@ def test_load_scope_review_missing_file_is_empty(tmp_path):
         ("Pennsylvania v. Commonwealth", 3, "10", "respublica/commonwealth"),
         ("United States v. Worrall", 2, "384", "us_criminal_caption"),
         ("Den ex dem. Smith's Lessee v. Doe", 4, "1", "lessee_ejectment"),
-        ("Georgia v. Brailsford", 2, "402", ""),  # p402 >= 401, genuine SCOTUS region
+        ("Georgia v. Brailsford", 2, "402", ""),  # p402 >= 401, the SCOTUS region of 2 Dall.
     ],
 )
 def test_collect_not_scotus_tells(name, volume, page, expected):
@@ -176,7 +176,7 @@ def test_run_scope_applies_the_ledger(tmp_path):
             (2, "Respublica v. Oswald", "2 U.S. 298", 2, "298", None),  # Dallas non-scdb -> drop
             (
                 3,
-                "Genuine v. Dallas",
+                "Ledger v. Dallas",  # synthetic name -- not a real case
                 "3 U.S. 400",
                 3,
                 "400",
@@ -190,7 +190,7 @@ def test_run_scope_applies_the_ledger(tmp_path):
     with open(ledger, "w") as handle:
         handle.write(
             "cluster_id,us_cite,case_name,disposition,rationale\n"
-            "3,3 U.S. 400,Genuine v. Dallas,keep,test\n"
+            "3,3 U.S. 400,Ledger v. Dallas,keep,test\n"
         )
     verdicts = {p.cluster_id: (p.is_scotus, p.evidence) for p in scope.run_scope(db, ledger)}
     assert verdicts[1][0] == "true"
@@ -231,7 +231,7 @@ def _verdicts_for(clusters, by_id, name_substring, us_cite):
     ],
 )
 def test_landmark_decisions_are_kept(name, cite):
-    """Real genuine decisions -- across scdb, reporter authority, and the ledger -- are kept."""
+    """Real SCOTUS decisions -- across scdb, reporter authority, and the ledger -- are kept."""
     clusters, by_id = _real_scope()
     assert _verdicts_for(clusters, by_id, name, cite) == {"true"}, f"{name} {cite} not kept"
 
