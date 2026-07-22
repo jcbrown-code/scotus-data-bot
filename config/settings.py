@@ -54,6 +54,11 @@ APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
 # override scope's automated rule (propose -> review -> execute). Built against V2/reference
 # data (an earlier V1 review artifact was retired as unreliable).
 SCOPE_REVIEW_CSV = os.path.join(DATASET_DIR, "scope_review.csv")
+# authoritative per-volume case list (SCDB / Wikipedia by-volume ingest); the answer key the
+# validate stage reconciles the deduplicated KEEP set against, per U.S. Reports volume.
+CASE_NAME_REFERENCE_CSV = os.path.join(DATASET_DIR, "case_name_reference.csv")
+# committed per-volume reconciliation report the validate stage writes for human review.
+VALIDATE_REPORT_CSV = os.path.join(DATASET_DIR, "validate_report.csv")
 
 # database artifacts
 DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.sqlite"))

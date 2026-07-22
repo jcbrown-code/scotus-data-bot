@@ -1,0 +1,690 @@
+reporter,rep_vol,us_vol,name,page,year
+Dallas,2,2,West v. Barnes,401,1791
+Dallas,2,2,Van Staphorst v. Maryland,401,1791
+Dallas,2,2,Oswald v. New York I,401,1792
+Dallas,2,2,Oswald v. New York II,402,1792
+Dallas,2,2,Georgia v. Brailsford I,402,1792
+Dallas,2,2,Hayburn's Case,409,1792
+Dallas,2,2,Oswald v. New York III,415,1792
+Dallas,2,2,Georgia v. Brailsford II,415,1793
+Dallas,2,2,Chisholm v. Georgia,419,1793
+Dallas,3,3,Georgia v. Brailsford,1,1794
+Dallas,3,3,Glass v. The Sloop Betsey,6,1794
+Dallas,3,3,United States v. Hamilton,17,1795
+Dallas,3,3,Bingham v. Cabot (1795),19,1795
+Dallas,3,3,United States v. Lawrence,42,1795
+Dallas,3,3,Penhallow v. Doane's Administrators,54,1795
+Dallas,3,3,United States v. Peters,121,1795
+Dallas,3,3,Talbot v. Janson,133,1795
+Dallas,3,3,Hylton v. United States,171,1796
+Dallas,3,3,Hills v. Ross,184,1796
+Dallas,3,3,McDonough v. Dannery,188,1796
+Dallas,3,3,Ware v. Hylton,199,1796
+Dallas,3,3,Geyer v. Michel,285,1796
+Dallas,3,3,United States v. La Vengeance,297,1796
+Dallas,3,3,Cotton v. Wallace,302,1796
+Dallas,3,3,Hunter v. Fairfax's Devisee,305,1796
+Dallas,3,3,Arcambel v. Wiseman,306,1796
+Dallas,3,3,Moodie v. The Ship Alfred,307,1796
+Dallas,3,3,Olney v. Arnold,308,1796
+Dallas,3,3,Moodie v. The Ship Phoebe Anne,319,1796
+Dallas,3,3,Grayson v. Virginia,320,1796
+Dallas,3,3,Wiscart v. Dauchy,321,1796
+Dallas,3,3,Hills v. Ross,331,1796
+Dallas,3,3,Del Col v. Arnold,333,1796
+Dallas,3,3,Jennings v. The Brig Perseverance,336,1797
+Dallas,3,3,Huger v. South Carolina,339,1797
+Dallas,3,3,Clerke v. Harwood,342,1797
+Dallas,3,3,Brown v. Van Braam,344,1797
+Dallas,3,3,Fenemore v. United States,357,1797
+Dallas,3,3,Brown v. Barry,365,1797
+Dallas,3,3,Emory v. Grenough,369,1797
+Dallas,3,3,Hamilton v. Moore,371,1797
+Dallas,3,3,Hollingsworth v. Virginia,378,1798
+Dallas,3,3,Bingham v. Cabot (1798),382,1798
+Dallas,3,3,Jones v. Le Tombe,384,1798
+Dallas,3,3,Calder v. Bull,386,1798
+Dallas,3,3,Wilson v. Daniel,401,1798
+Dallas,3,3,Dewhurst v. Coulthard,409,1799
+Dallas,3,3,Ex parte Hallowell,410,1799
+Dallas,3,3,Fowler v. Lindsey,411,1799
+Dallas,3,3,Clarke v. Russel,415,1799
+Dallas,3,3,Sims' Lessee v. Irvine,425,1799
+Dallas,4,4,New York v. Connecticut,1,1799
+Dallas,4,4,Hazlehurst v. United States,6,1799
+Dallas,4,4,Turner v. Enrille,7,1799
+Dallas,4,4,Turner v. Bank of N. Am.,8,1799
+Dallas,4,4,Mossman v. Higginson,12,1800
+Dallas,4,4,Cooper v. Telfair,14,1800
+Dallas,4,4,Williamson v. Kincaid,20,1800
+Dallas,4,4,Rutherford v. Fisher,22,1800
+Dallas,4,4,Blair v. Miller,21,1800
+Dallas,4,4,Course v. Stead,22,1800
+Dallas,4,4,Blaine v. Ship Clarles Carter,22,1800
+Dallas,4,4,Priestman v. United States,28,1800
+Dallas,4,4,Talbot v. Ship Amelia,34,1800
+Dallas,4,4,Bas v. Tingy,37,1800
+Cranch,5,9,Talbot v. Seeman,1,1801
+Cranch,5,9,Wilson v. Mason,45,1801
+Cranch,5,9,The Schooner Peggy,103,1801
+Cranch,5,9,Resler v. Shehee,110,1801
+Cranch,5,9,Turner v. Fendall,116,1801
+Cranch,5,9,Marbury v. Madison,137,1803
+Cranch,5,9,Clark v. Young,181,1803
+Cranch,5,9,Wilson v. Lenox,194,1803
+Cranch,5,9,Clarke v. Bazadone,212,1803
+Cranch,5,9,Hooe and Company. v. Groverman,214,1803
+Cranch,5,9,Wood v. Owings,239,1803
+Cranch,5,9,United States v. Simms,252,1803
+Cranch,5,9,Fenwick v. Sears's Administrators,259,1803
+Cranch,5,9,Thompson v. Jameson,282,1803
+Cranch,5,9,Mandeville v. Joseph Riddle and Company,290,1803
+Cranch,5,9,Stuart v. Laird,299,1803
+Cranch,5,9,Hamilton v. Russell,309,1803
+Cranch,5,9,United States v. Hooe,318,1803
+Cranch,5,9,Hepburn v. Auld,321,1803
+Cranch,5,9,Marine Insurance Company v. Young,332,1803
+Cranch,5,9,Abercrombie v. Dupuis,343,1803
+Cranch,5,9,Lindo v. Gardner,343,1803
+Cranch,5,9,Hodgson v. Dexter,345,1803
+Cranch,5,9,Lloyd v. Alexander,365,1803
+Cranch,6,10,Williams v. Lyles,10,
+Cranch,6,10,Wood v. Wagnon,10,
+Cranch,6,10,Faw v. Marsteller,10,1804
+Cranch,6,10,Ogle v. Lee,32,
+Cranch,6,10,Pennington v. Coxe,33,1804
+Cranch,6,10,The Schooner Charming Betsy,64,1804
+Cranch,6,10,Capron v. Van Noorden,126,1804
+Cranch,6,10,Head v. Providence Insurance Company,127,1804
+Cranch,6,10,Little v. Barreme,170,1804
+Cranch,6,10,Dunlop and Company v. Ball,180,1804
+Cranch,6,10,Blakeney v. Evans,186,
+Cranch,6,10,Church v. Hubbart,187,1804
+Cranch,6,10,The Ship Blaireau,240,1804
+Cranch,6,10,Ogden v. Blackledge,272,1804
+Cranch,6,10,McIlvaine v. Coxe's Lessee,280,1805
+Cranch,6,10,Adams v. Woods,336,1805
+Cranch,6,10,Winchester v. Hackley,342,1805
+Cranch,6,10,Reily v. Lamar,344,1805
+Cranch,6,10,United States v. Fisher,358,1805
+Cranch,6,10,Bailiff v. Tipping,406,1805
+Cranch,6,10,The Schooner Sally,406,1805
+Cranch,6,10,Telfair v. Stead's Executors,407,1805
+Cranch,6,10,Graves v. Boston Marine Insurance Company,419,1805
+Cranch,6,10,Hepburn v. Ellzey,445,1805
+Cranch,7,11,Huidekoper's Lessee v. Douglass,1,1805
+Cranch,7,11,United States v. Hooe,73,1805
+Cranch,7,11,Peyton v. Brooke,92,1805
+Cranch,7,11,Lambert's Lessee v. Paine,97,1805
+Cranch,7,11,Hodgson v. Butts,140,1805
+Cranch,7,11,United States v. More,159,1805
+Cranch,7,11,Faw v. Roberdeau's Executor,174,1805
+Cranch,7,11,Ray v. Law,179,1805
+Cranch,7,11,Levy v. Gadsby,180,1805
+Cranch,7,11,Marine Insurance Company v. Wilson,187,1805
+Cranch,7,11,Wilson v. Codman's Executor,193,1805
+Cranch,7,11,Hallet v. Jenks,210,1805
+Cranch,7,11,Milligan v. Milledge,220,1805
+Cranch,7,11,Cooke v. Graham's Administrator,229,1805
+Cranch,7,11,Dobynes v. United States,241,1806
+Cranch,7,11,Hannay v. Eve,242,1806
+Cranch,7,11,Silsby v. Young,249,1806
+Cranch,7,11,Montalet v. Murray,249,1806
+Cranch,7,11,Strawbridge v. Curtiss,267,1806
+Cranch,7,11,Gordon v. Caldcleugh,268,1806
+Cranch,7,11,McFerran v. Taylor,270,1806
+Cranch,7,11,Wilson v. Speed,283,1806
+Cranch,7,11,Buddicum v. Kirk,293,1806
+Cranch,7,11,Douglass v. McAllister,298,1806
+Cranch,7,11,Simms v. Slacum,300,1806
+Cranch,7,11,Harris v. Johnston,311,1806
+Cranch,7,11,Dixon's Executors v. Ramsay's Executors,319,1806
+Cranch,7,11,Scott v. London,324,1806
+Cranch,7,11,Wise v. Withers,331,1806
+Cranch,7,11,United States v. Grundy,337,1806
+Cranch,7,11,Marine Insurance Company v. Tucker,357,1806
+Cranch,7,11,United States v. Heth,399,1806
+Cranch,7,11,"Manella, Pujals and Company v. Barry",415,1806
+Cranch,7,11,Ex parte Burford,448,1806
+Cranch,7,11,Hopkirk v. Bell,454,1806
+Cranch,7,11,Maley v. Shattuck,458,1806
+Cranch,7,11,Lawrason v. Mason,492,1806
+Cranch,7,11,Knox v. Summers,496,1806
+Cranch,7,11,Sands v. Knox,499,1806
+Cranch,7,11,Randolph v. Ware,503,1806
+Cranch,7,11,Winchester v. Jackson,514,1806
+Cranch,7,11,Field v. Milton,514,1806
+Cranch,8,12,United States v. Kid,1,1807
+Cranch,8,12,Jennings v. Carson,2,1807
+Cranch,8,12,Rhinelander v. Insurance Company,29,1807
+Cranch,8,12,Montalet v. Murray,46,1807
+Cranch,8,12,United States v. Willings,48,1807
+Cranch,8,12,O'Neale v. Long,60,1807
+Cranch,8,12,Smith v. Carrington,62,1807
+Cranch,8,12,Pendleton v. Wambersie,73,1807
+Cranch,8,12,Ex parte Bollman,75,1807
+Cranch,8,12,Skillern's Executors v. May's Executors,137,1807
+Cranch,8,12,French's Executrix v. Bank of Columbia,141,1807
+Cranch,8,12,Hopkirk v. Bell,164,1807
+Cranch,8,12,Hicks v. Rogers,165,1807
+Cranch,8,12,United States v. Cantrill,167,1807
+Cranch,8,12,Sthreshley v. United States,169,1807
+Cranch,8,12,Marshall v. Currie,172,1807
+Cranch,8,12,Viers v. Montgomery,177,1807
+Cranch,8,12,Diggs v. Wolcott,179,1807
+Cranch,8,12,Wood v. Lide,180,1807
+Cranch,8,12,Fitzsimmons v. Newport Insurance Company,185,1808
+Cranch,8,12,Marshall v. Delaware Insurance Company,202,1808
+Cranch,8,12,McIlvaine v. Coxe's Lessee,209,1808
+Cranch,8,12,The Brig Union,216,1808
+Cranch,8,12,Pawling v. United States,219,1808
+Cranch,8,12,Grant v. Naylor,224,1808
+Cranch,8,12,Woods v. Young,237,1808
+Cranch,8,12,Young v. Preston,239,1808
+Cranch,8,12,Rose v. Himely,241,1808
+Cranch,8,12,Hudson v. Guestier,293,1808
+Cranch,8,12,Alexander v. Harris,299,1808
+Cranch,8,12,Chappedelaine v. Dechenaux,306,1808
+Cranch,8,12,United States v. Vowell,316,1808
+Cranch,8,12,City of Alexandria v. Patten,317,1808
+Cranch,8,12,Dawson's Lessee v. Godfrey,321,1808
+Cranch,8,12,Mountz v. Hodgson,324,1808
+Cranch,8,12,The Ship Charles Carter,328,1808
+Cranch,8,12,United States v. Gurney,333,1808
+Cranch,8,12,Peisch v. Ware,347,1808
+Cranch,8,12,Shearman v. Irvine's Lessee,367,1808
+Cranch,8,12,Alexander v. Baltimore Insurance Company,370,1808
+Cranch,8,12,Morgan v. Callender,370,1808
+Cranch,8,12,Matthews v. Zane,382,1808
+Cranch,8,12,Young v. Bank of Alexandria,384,1808
+Cranch,8,12,Spires v. Willison,398,1808
+Cranch,8,12,Ramsay v. Lee,401,1808
+Cranch,8,12,Stead's Executors v. Course,403,1808
+Cranch,8,12,Higginson v. Mein,415,1808
+Cranch,8,12,Pollard v. Dwight,421,1808
+Cranch,8,12,Croudson v. Leonard,434,1808
+Cranch,8,12,Ex parte Lewis,433,1808
+Cranch,8,12,The Schooner Betsey,443,1808
+Cranch,9,13,Alexander v. City of Alexandria,1,1809
+Cranch,9,13,United States v. Weeks,1,1809
+Cranch,9,13,Henderson v. Moore,11,1809
+Cranch,9,13,Cooke v. Woodrow,13,1809
+Cranch,9,13,Mandeville v. Wilson,15,1809
+Cranch,9,13,Fairfax's Executor v. Fairfax,19,1809
+Cranch,9,13,M'Keen v. Delancy's Lessee,22,1809
+Cranch,9,13,Tucker v. Oxley,34,1809
+Cranch,9,13,Young v. Bank of Alexandria,45,1809
+Cranch,9,13,Yeaton v. Bank of Alexandria,49,1809
+Cranch,9,13,Hope Insurance Company v. Boardman,57,1809
+Cranch,9,13,Bank of the United States v. Deveaux,61,1809
+Cranch,9,13,Matthews v. Zane's Lessee,92,1809
+Cranch,9,13,Hodgson v. Marine Insurance Company,100,1809
+Cranch,9,13,United States v. Peters,115,1809
+Cranch,9,13,Violett v. Patton,142,1809
+Cranch,9,13,Pierce v. Turner,154,1809
+Cranch,9,13,Kempe's Lessee v. Kennedy,173,1809
+Cranch,9,13,Marine Insurance Company v. Young,187,1809
+Cranch,9,13,Bodley v. Taylor,191,1809
+Cranch,9,13,Taylor v. Brown,234,1809
+Cranch,9,13,United States v. Arthur,257,1809
+Cranch,9,13,Hepburn v. Auld,262,1809
+Cranch,9,13,United States v. Evans,280,1809
+Cranch,9,13,Yeaton v. United States,281,1809
+Cranch,9,13,United States v. Potts,284,1809
+Cranch,9,13,Rush v. Parker,287,1809
+Cranch,9,13,Logan v. Patrick,288,1809
+Cranch,9,13,Rodford v. Craig,289,1809
+Cranch,9,13,Harrison v. Sterry,289,1809
+Cranch,9,13,Hodgson v. Bowerbank,303,1809
+Cranch,9,13,Browne v. Strode,303,1809
+Cranch,9,13,Keene v. United States,304,1809
+Cranch,9,13,United States v. Riddle,311,1809
+Cranch,9,13,Himely v. Rose,313,1809
+Cranch,9,13,Welsh v. Mandeville,321,1809
+Cranch,9,13,Riddle and Company v. Mandeville,322,1809
+Cranch,9,13,Dulany v. Hodgkin,333,1809
+Cranch,9,13,Yeaton v. Fry,335,1809
+Cranch,9,13,Owings v. Norwood's Lessee,344,1809
+Cranch,9,13,Moss v. Riddle and Company,351,1809
+Cranch,9,13,Brent v. Chapman,358,1809
+Cranch,9,13,Auld v. Norwood,361,1809
+Cranch,9,13,Slacum v. Simms,363,1809
+Cranch,9,13,United States v. Vowell,368,1809
+Cranch,9,13,The Sloop Sally,372,1809
+Cranch,10,14,Scott v. Ben,3,1810
+Cranch,10,14,Field v. Holland,8,1810
+Cranch,10,14,Maryland Insurance Company v. Woods,29,1810
+Cranch,10,14,Young v. Grundy,51,1810
+Cranch,10,14,Ex parte Wilson,52,1810
+Cranch,10,14,Oneale v. Thornton,53,1810
+Cranch,10,14,King v. Delaware Insurance Company,71,1810
+Cranch,10,14,Lewis v. Harwood,82,1810
+Cranch,10,14,Riddle and Company v. Mandeville,86,1810
+Cranch,10,14,Fletcher v. Peck,87,1810
+Cranch,10,14,Massie v. Watts,148,1810
+Cranch,10,14,United States v. Hall,171,1810
+Cranch,10,14,Campbell v. Gordon,176,1810
+Cranch,10,14,M'Knight v. Craig's Administrator,183,1810
+Cranch,10,14,Kennedy v. Brent,187,1810
+Cranch,10,14,Korn v. Mutual Assurance Society,192,1810
+Cranch,10,14,Atkinson v. Mutual Assurance Society,202,1810
+Cranch,10,14,Stewart v. Anderson,203,1810
+Cranch,10,14,The Ship Helen,203,1810
+Cranch,10,14,Marine Insurance Company v. Hodgson,206,1810
+Cranch,10,14,Slacum v. Pomery,221,1810
+Cranch,10,14,Vasse v. Smith,226,1810
+Cranch,10,14,Custiss v. Georgetown and Alexandria Turnpike Company,233,1810
+Cranch,10,14,Lodge's Lessee v. Lee,237,1810
+Cranch,10,14,Finley v. Lynn,238,1810
+Cranch,10,14,De Butts v. Bacon,252,1810
+Cranch,10,14,Sheehy v. Mandeville,253,1810
+Cranch,10,14,Skillern's Executors v. May's Executors,267,1810
+Cranch,10,14,Chesapeake Insurance Company v. Stark,268,1810
+Cranch,10,14,Livingston v. Maryland Insurance Company,274,1810
+Cranch,10,14,Hudson v. Guestier,281,1810
+Cranch,10,14,Smith v. Maryland ex rel. Caroll,286,1810
+Cranch,10,14,Durousseau v. United States,307,1810
+Cranch,10,14,Tyler v. Tuel,324,1810
+Cranch,10,14,The Schooner Juliana,327,1810
+Cranch,10,14,The Schooner Rachel,329,1810
+Cranch,10,14,The Brigantine Amiable Lucy,330,1810
+Cranch,10,14,Sere v. Pitot,332,1810
+Cranch,10,14,Maryland Insurance Company v. Ruden's Administrator,338,1810
+Cranch,11,15,Hudson v. Guestier,1,1812
+Cranch,11,15,Fitzsimmons v. Ogden,2,1812
+Cranch,11,15,The Brig James Wells,22,1812
+Cranch,11,15,Maryland Insurance Company v. Le Roy,26,1812
+Cranch,11,15,United States v. Hudson,32,1812
+Cranch,11,15,Shirras v. Caig,34,1812
+Cranch,11,15,Schooner Paulina,52,1812
+Cranch,11,15,Russell v. Clark's Executors,69,1812
+Cranch,11,15,Bingham v. Morris,99,1812
+Cranch,11,15,Catherine v. United States,99,1812
+Cranch,11,15,The Sloop Active,100,1812
+Cranch,11,15,Hawthorne v. United States,107,1812
+Cranch,11,15,United States v. Goodwin,108,1812
+Cranch,11,15,Whelan v. United States,112,1812
+Cranch,11,15,The Brig Eliza,113,1812
+Cranch,11,15,United States v. Crosby,115,1812
+Cranch,11,15,The Schooner Exchange,116,1812
+Cranch,11,15,Freeland v. Heron Lenox and Company,147,1812
+Cranch,11,15,Welch v. Mandeville,152,1812
+Cranch,11,15,Marsteller v. M'Clean,156,1812
+Cranch,11,15,Welch v. Lindo,159,1812
+Cranch,11,15,New Jersey v. Wilson,164,1812
+Cranch,11,15,King v. Riddle,168,1812
+Cranch,11,15,Davy's Executors v. Faw,171,1812
+Cranch,11,15,Hughes v. Moore,176,1812
+Cranch,11,15,Barton v. Petit,194,1812
+Cranch,11,15,Wilson v. Koontz,202,1812
+Cranch,11,15,Riddle v. Moss,206,1812
+Cranch,11,15,Sheehy v. Mandeville,208,1812
+Cranch,11,15,Conway's Executors v. Alexander,218,1812
+Cranch,11,15,Dunlop v. Munroe,242,1812
+Cranch,11,15,Wood v. Davis,271,1812
+Cranch,11,15,Morgan v. Reintzel,273,1812
+Cranch,11,15,Caldwell v. Jackson,276,1812
+Cranch,11,15,Wise and Lynn v. Columbian Turnpike Company,276,1812
+Cranch,11,15,Blackwell v. Patten,277,1812
+Cranch,11,15,Wallen v. Williams,278,1812
+Cranch,11,15,M'Kim v. Voorhies,279,1812
+Cranch,11,15,Beatty v. Maryland,281,1812
+Cranch,11,15,United States v. Tyler,285,1812
+Cranch,11,15,United States v. Gordon,287,1813
+Cranch,11,15,Barton v. Petit,288,1813
+Cranch,11,15,Queen v. Hepburn,290,1813
+Cranch,11,15,Bank of Columbia v. Patterson's Administrator,299,1813
+Cranch,11,15,Clark's Executors v. Carrington,308,1813
+Cranch,11,15,Dickey v. Baltimore Insurance Company,327,1813
+Cranch,11,15,Marine Insurance Company v. Hodgson,332,1813
+Cranch,11,15,Locke v. United States,339,1813
+Cranch,11,15,The Schooner Good Catharine,349,1813
+Cranch,11,15,Bond v. Jay,350,1813
+Cranch,11,15,Preston v. Tremble,354,1813
+Cranch,11,15,The Brig Penobscot,356,1813
+Cranch,11,15,Caze v. Baltimore Insurance Company,358,1813
+Cranch,11,15,The Schooner Jane,363,1813
+Cranch,11,15,Lee v. Munroe,366,1813
+Cranch,11,15,Herbert v. Wren,370,1813
+Cranch,11,15,The Brig Aurora,382,1813
+Cranch,11,15,The Schooner Hoppet,389,1813
+Cranch,11,15,Mutual Assurance Society v. Korn,396,1813
+Cranch,11,15,Webster v. Hoban,399,1813
+Cranch,11,15,Maryland Insurance Company v. Wood,402,1813
+Cranch,11,15,Ferguson v. Harwood,408,1813
+Cranch,11,15,Biays v. Chesapeake Insurance Company,415,1813
+Cranch,11,15,Stark v. Chesapeake Insurance Company,420,1813
+Cranch,11,15,Williams v. Armroyd,423,1813
+Cranch,11,15,Smith v. Delaware Insurance Company,434,1813
+Cranch,11,15,Holker v. Parker,436,1813
+Cranch,11,15,Barnitz's Lessee v. Casey,456,1813
+Cranch,11,15,Blackwell v. Patton's Lessee,471,1813
+Cranch,11,15,Mills v. Duryee,481,1813
+Cranch,11,15,Oliver v. Maryland Insurance Company,487,1813
+Cranch,11,15,The Brig Caroline,496,1813
+Cranch,11,15,Riggs v. Lindsay,500,1813
+Cranch,11,15,M'Intire v. Wood,504,1813
+Cranch,11,15,Livingston v. Maryland Insurance Company,506,1813
+Cranch,11,15,Young v. Grundy,548,1813
+Cranch,11,15,Palmer v. Allen,550,1813
+Cranch,11,15,Young v. Black,565,1813
+Cranch,11,15,The Schooner Anne,570,1813
+Cranch,11,15,United States v. January,572,1813
+Cranch,11,15,United States v. Patterson,575,1813
+Cranch,11,15,Livingston v. Dorgenois,577,1813
+Cranch,11,15,Otis v. Bacon,589,1813
+Cranch,11,15,Thornton v. Carson,596,1813
+Cranch,11,15,Wallen v. Williams,602,1813
+Cranch,11,15,Fairfax's Devisee v. Hunter's Lessee,603,1813
+Cranch,12,16,Griffith v. Frazier,9,1814
+Cranch,12,16,Van Ness v. Forrest,30,1814
+Cranch,12,16,Bank of Alexandria v. Herbet,36,1814
+Cranch,12,16,Marcardier v. Chesapeake Insurance Company,39,1814
+Cranch,12,16,Hall v. Leigh,50,1814
+Cranch,12,16,City of Alexandria v. Preston,53,1814
+Cranch,12,16,Pleasants v. Maryland Insurance Company,55,1814
+Cranch,12,16,McCall v. Marine Insurance Company,59,1814
+Cranch,12,16,Smith v. Edrington,66,1814
+Cranch,12,16,Beale v. Thompson,70,1814
+Cranch,12,16,Clementson v. Williams,72,1814
+Cranch,12,16,Gracie v. Marine Insurance Company,75,1814
+Cranch,12,16,Richards v. Maryland Insurance Company,84,1814
+Cranch,12,16,Gracie v. Maryland Insurance Company,84,1814
+Cranch,12,16,Crowell v. M'Fadon,94,1814
+Cranch,12,16,Beatty's Administrators v. Burnes's Administrators,98,1814
+Cranch,12,16,Harford v. United States,109,1814
+Cranch,12,16,Brown v. United States,110,1814
+Cranch,12,16,The Rapid,155,1814
+Cranch,12,16,The Alexander,169,1814
+Cranch,12,16,The Julia,181,1814
+Cranch,12,16,The Aurora,203,1814
+Cranch,12,16,The Adventure,221,1814
+Cranch,12,16,Green v. Liter,229,1814
+Cranch,12,16,Carter's Heirs v. Cutting,251,1814
+Cranch,12,16,The Venus,253,1814
+Cranch,12,16,The Merrimack,317,1814
+Cranch,12,16,The Frances I,335,1814
+Cranch,12,16,The Frances II,348,1814
+Cranch,12,16,The Frances III,354,1814
+Cranch,12,16,The Frances IV,358,1814
+Cranch,12,16,The Frances V,359,1814
+Cranch,12,16,The Frances VI,363,1814
+Cranch,12,16,Vowles v. Craig,371,1814
+Cranch,12,16,The Sally,382,1814
+Cranch,12,16,The Euphrates,385,1814
+Cranch,12,16,The Mary,388,1814
+Cranch,12,16,United States v. 1960 Bags of Coffee,398,1814
+Cranch,12,16,The Brigantine Mars,417,1814
+Cranch,12,16,The Frances VII,418,1814
+Cranch,12,16,The Thomas Gibbons,421,1814
+Cranch,12,16,Prince v. Bartlett,431,1814
+Cranch,12,16,The St. Lawrence,434,1814
+Cranch,12,16,The Hiram,444,1814
+Cranch,12,16,The Joseph,451,1814
+Cranch,12,16,The Grotius,456,1814
+Cranch,12,16,Alexander v. Pendleton,462,1814
+Cranch,12,16,Pratt v. Carroll,471,1814
+Cranch,13,17,Mandeville v. Union Bank,9,1815
+Cranch,13,17,Meigs v. M'clung's Lessee,11,1815
+Cranch,13,17,Simms v. Guthrie,19,1815
+Cranch,13,17,Speake v. United States,28,1815
+Cranch,13,17,Taber v. Perrott,39,1815
+Cranch,13,17,Terrett v. Taylor,43,1815
+Cranch,13,17,The Brig Short Staple,55,1815
+Cranch,13,17,Parker v. Rule's Lessee,64,1815
+Cranch,13,17,The Brig Struggle,71,1815
+Cranch,13,17,Randolph v. Donaldson,76,1815
+Cranch,13,17,Polk's Lessee v. Wendal,87,1815
+Cranch,13,17,The Ship Richmond,102,1815
+Cranch,13,17,Arnold v. United States,104,1815
+Cranch,13,17,The St. Lawrence,120,1815
+Cranch,13,17,Drummond's Administrators v. Magruder's Trustees,122,1815
+Cranch,13,17,The Mary,126,1815
+Cranch,13,17,Doe v. McFarland,151,1815
+Cranch,13,17,Clark's Executors v. Van Riemsdyk,153,1815
+Cranch,13,17,Finley v. Williams,164,1815
+Cranch,13,17,McIver's Lessee v. Walker,173,1815
+Cranch,13,17,Owens v. Hanney,180,1815
+Cranch,13,17,The Ship Fanny,181,1815
+Cranch,13,17,The Frances,183,1815
+Cranch,13,17,30 Hogsheads of Sugar v. Boyle,191,1815
+Cranch,13,17,Evans v. Jordan,199,1815
+Cranch,13,17,The Ship Hazard,205,1815
+Cranch,13,17,The Ship Societe,209,1815
+Cranch,13,17,United States v. Giles,212,1815
+Cranch,13,17,United States v. Barber,243,1815
+Cranch,13,17,The Schooner Andeline,244,1815
+Cranch,13,17,The Brig Ann,289,1815
+Cranch,13,17,Town of Pawlet v. Clark,292,1815
+Cranch,13,17,Otis v. Watkins,339,1815
+Cranch,13,17,The Brig Alerta,359,1815
+Cranch,13,17,The Grotius,368,1815
+Cranch,13,17,Gettings v. Burch's Administratrix,372,1815
+Cranch,13,17,United States v. Bryan,374,1815
+Cranch,13,17,The Brig Concord,387,1815
+Cranch,13,17,The Nereide,388,1815
+Cranch,13,17,Pratt v. Law,456,1815
+Wheaton,14,27,Henry v. Ball,1,1816
+Wheaton,14,27,Davis v. Wood,6,1816
+Wheaton,14,27,The Samuel,9,1816
+Wheaton,14,27,The Octavia,20,1816
+Wheaton,14,27,The Mary and Susan I,25,1816
+Wheaton,14,27,The Mary and Susan II,46,1816
+Wheaton,14,27,The Rugen,62,1816
+Wheaton,14,27,Thompson v. Gray,75,1816
+Wheaton,14,27,Anderson v. Longden,85,1816
+Wheaton,14,27,City of New Orleans v. Winter,91,1816
+Wheaton,14,27,The Aurora,96,1816
+Wheaton,14,27,The Venus,112,1816
+Wheaton,14,27,Preston v. Browder,115,1816
+Wheaton,14,27,The Astrea,125,1816
+Wheaton,14,27,Matson v. Hord,130,1816
+Wheaton,14,27,Taylor v. Walton,141,1816
+Wheaton,14,27,Barr v. Lapsley,151,1816
+Wheaton,14,27,Danforth's Lessee v. Thomas,155,1816
+Wheaton,14,27,The Antonia Johanna,159,1816
+Wheaton,14,27,The Nereid,171,1816
+Wheaton,14,27,Hepburn v. Dunlop and Company,179,1816
+Wheaton,14,27,The St. Joze,208,1816
+Wheaton,14,27,Renner v. Marshall,215,1816
+Wheaton,14,27,Morean v. United States Insurance Company,219,1816
+Wheaton,14,27,Welch v. Mandeville,233,1816
+Wheaton,14,27,L'Invincible,238,1816
+Wheaton,14,27,The Edward,261,1816
+Wheaton,14,27,Mutual Assurance Society v. Watt's Executors,279,1816
+Wheaton,14,27,Walden v. Gratz's Heirs,292,1816
+Wheaton,14,27,The Harrison,298,1816
+Wheaton,14,27,Harden v. Fisher,300,1816
+Wheaton,14,27,Martin v. Hunter's Lessee,304,1816
+Wheaton,14,27,The Commercen,382,1816
+Wheaton,14,27,The George,408,1816
+Wheaton,14,27,United States v. Coolidge,415,1816
+Wheaton,14,27,The St. Nicholas,417,1816
+Wheaton,14,27,Russel v. Transylvania University,432,1816
+Wheaton,14,27,The Elsineur,439,1816
+Wheaton,14,27,The Hiram,440,1816
+Wheaton,14,27,Ammidon v. Smith,447,1816
+Wheaton,14,27,Jones v. Shore's Executors,462,1816
+Wheaton,14,27,Patton's Lessee v. Easton,476,1816
+Wheaton,14,27,Ross v. Reed,482,1816
+Wheaton,15,28,Slocum v. Mayberry,1,1817
+Wheaton,15,28,Greenleaf v. Cook,13,1817
+Wheaton,15,28,Otis v. Walter,18,1817
+Wheaton,15,28,M'Iver v. Ragan,25,1817
+Wheaton,15,28,Hunter v. Bryant,32,1817
+Wheaton,15,28,Duvall v. Craig,45,1817
+Wheaton,15,28,Coolidge v. Payson,66,1817
+Wheaton,15,28,The Dos Hermanos,76,1817
+Wheaton,15,28,Beverly v. Brooke,100,1817
+Wheaton,15,28,McCoul v. Lekamp's Administratrix,111,1817
+Wheaton,15,28,United States v. Sheldon,119,1817
+Wheaton,15,28,The Mary,123,1817
+Wheaton,15,28,The San Pedro,132,1817
+Wheaton,15,28,The Ariadne,143,1817
+Wheaton,15,28,The William King,148,1817
+Wheaton,15,28,The Fortuna,161,1817
+Wheaton,15,28,The Bothnea,169,1817
+Wheaton,15,28,Laidlaw v. Organ,178,1817
+Wheaton,15,28,Rutherford v. Greene's Heirs,196,1817
+Wheaton,15,28,Johnson v. Pannel's Heirs,206,1817
+Wheaton,15,28,Patterson v. United States,221,1817
+Wheaton,15,28,The Pizarro,227,1817
+Wheaton,15,28,United States v. Tenbroek,248,1817
+Wheaton,15,28,Chirac v. Chirac's Lessee,259,1817
+Wheaton,15,28,The George,278,1817
+Wheaton,15,28,The Argo,287,1817
+Wheaton,15,28,Morgan's Heirs v. Morgan,290,1817
+Wheaton,15,28,Liter v. Green,306,1817
+Wheaton,15,28,Shipp v. Miller's Heirs,316,1817
+Wheaton,15,28,The Anna Maria,327,1817
+Wheaton,15,28,Colson v. Thompson,336,1817
+Wheaton,15,28,The Eleanor,345,1817
+Wheaton,15,28,Inglee v. Coolidge,363,1817
+Wheaton,15,28,M'Cluny v. Silliman,369,1817
+Wheaton,15,28,The London Packet,371,1817
+Wheaton,15,28,Lenox v. Roberts,373,1817
+Wheaton,15,28,Colson v. Lewis,377,1817
+Wheaton,15,28,Leeds v. Marine Insurance Company,380,1817
+Wheaton,15,28,Raborg v. Peyton,385,1817
+Wheaton,15,28,Union Bank v. Laird,390,1817
+Wheaton,15,28,United States v. Barker,395,1817
+Wheaton,15,28,Thelusson v. Smith,396,1817
+Wheaton,16,29,Jackson ex rel. People v. Clarke,1,1818
+Wheaton,16,29,The Friendschaft,14,
+Wheaton,16,29,M'Iver v. Kyger,53,
+Wheaton,16,29,The Diana,58,
+Wheaton,16,29,The New-York,59,
+Wheaton,16,29,The Samuel,77,1818
+Wheaton,16,29,The Star,78,
+Wheaton,16,29,The San Pedro,78,1818
+Wheaton,16,29,Lanusse v. Barker,101,
+Wheaton,16,29,Hughes v. Union Insurance Company,159,1818
+Wheaton,16,29,Swan v. Union Insurance Company,168,1818
+Wheaton,16,29,Dugan v. United States,172,
+Wheaton,16,29,Olivera v. Union Insurance Company,183,1818
+Wheaton,16,29,Shepherd v. Hampton,200,
+Wheaton,16,29,Patton v. Nicholson,204,
+Wheaton,16,29,Robinson v. Campbell,212,
+Wheaton,16,29,Dunlop v. Hepburn,231,1818
+Wheaton,16,29,United States v. 150 Crates of Earthen-Ware,232,
+Wheaton,16,29,Hampton v. M'Connel,234,1818
+Wheaton,16,29,The Fortuna,236,
+Wheaton,16,29,Gelston v. Hoyt,246,
+Wheaton,16,29,United States v. Bevans,336,
+Wheaton,16,29,The Æolus,392,1818
+Wheaton,16,29,The Atalanta,409,1818
+Wheaton,16,29,Houston v. Moore,433,1818
+Wheaton,16,29,The Anne,435,
+Wheaton,16,29,Brown v. Jackson,449,1818
+Wheaton,16,29,Evans v. Eaton,454,
+Wheaton,16,29,Lenox v. Prout,520,
+Wheaton,16,29,Burton's Lessee v. Williams,529,1818
+Wheaton,16,29,Murray's Lessee v. Baker,541,1818
+Wheaton,16,29,The Amiable Nancy,546,
+Wheaton,16,29,Craig v. Leslie,563,
+Wheaton,16,29,Cameron v. M'Roberts,591,
+Wheaton,16,29,Craig v. Radford,594,
+Wheaton,16,29,Ross v. Triplett,600,
+Wheaton,16,29,The Neptune,601,
+Wheaton,16,29,United States v. Palmer,610,
+Wheaton,17,30,Philadelphia Baptist Association v. Hart's Executors,1,1819
+Wheaton,17,30,The Divina Pastora,52,
+Wheaton,17,30,Evans v. Phillips,73,
+Wheaton,17,30,Van Ness v. Buel,74,
+Wheaton,17,30,Williams v. Peyton's Lessee,77,1819
+Wheaton,17,30,The Experiment,84,1819
+Wheaton,17,30,Weightman v. Caldwell,85,
+Wheaton,17,30,The Sybil,98,
+Wheaton,17,30,The Caledonian,100,
+Wheaton,17,30,The Langdon Cheves,103,1819
+Wheaton,17,30,The Friendschaft,105,1819
+Wheaton,17,30,United States v. Howland,108,
+Wheaton,17,30,Sturges v. Crowninshield,122,
+Wheaton,17,30,M'Millan v. M'Neill,209,1819
+Wheaton,17,30,Barr v. Gratz's Heirs,213,1819
+Wheaton,17,30,Eliason v. Henshaw,225,
+Wheaton,17,30,Somerville's Executors v. Hamilton,230,1819
+Wheaton,17,30,Bank of Columbia v. Okely,235,
+Wheaton,17,30,United States v. Rice,246,
+Wheaton,17,30,Brown v. Gilman,255,
+Wheaton,17,30,The Estrella,298,1819
+Wheaton,17,30,Miller ex rel. United States v. Nicholls,311,1819
+Wheaton,17,30,M'Culloch v. Maryland,316,1819
+Wheaton,17,30,The General Smith,438,
+Wheaton,17,30,M'Iver's Lessee v. Walker,444,1819
+Wheaton,17,30,Orr v. Hodgson,453,
+Wheaton,17,30,Astor v. Wells,466,1819
+Wheaton,17,30,McArthur v. Browder,488,
+Wheaton,17,30,The Neustra Senora,497,1819
+Wheaton,17,30,Wheaton v. Sexton's Lessee,503,
+Wheaton,17,30,Sergeant's Lessee v. Biddle,508,1819
+Wheaton,17,30,Boyd's Lessee v. Graves,513,1819
+Wheaton,17,30,Dartmouth College v. Woodward,518,
+Wheaton,18,31,Houston v. Moore,1,1820
+Wheaton,18,31,United States v. Wiltberger,76,
+Wheaton,18,31,M'Clung v. Ross,116,
+Wheaton,18,31,The Venus,127,1820
+Wheaton,18,31,The London Packet,132,1820
+Wheaton,18,31,United States v. Klintock,144,1820
+Wheaton,18,31,United States v. Smith,153,
+Wheaton,18,31,United States v. Furlong,184,1820
+Wheaton,18,31,Stevenson's Heirs v. Sullivant,207,1820
+Wheaton,18,31,Perkins v. Ramsey,269,
+Wheaton,18,31,Mandeville v. Welch,277,
+Wheaton,18,31,Wallace v. Anderson,291,
+Wheaton,18,31,Polk's Lessee v. Wendell,293,1820
+Wheaton,18,31,Marshall v. Beverley,313,1820
+Wheaton,18,31,Loughborough v. Blake,317,
+Wheaton,18,31,Mechanics' Bank v. Bank of Columbia,326,
+Wheaton,18,31,The Josefa Segunda,338,
+Wheaton,18,31,Blake v. Doherty,359,
+Wheaton,18,31,Handly's Lessee v. Anthony,374,1820
+Wheaton,18,31,La Amistad de Rues,385,1820
+Wheaton,18,31,Lyle v. Rodgers,394,
+Wheaton,18,31,United States v. Holmes,412,
+Wheaton,18,31,Owings v. Speed,420,
+Wheaton,18,31,Conn v. Penn,424,
+Wheaton,18,31,Campbell v. Pratt,429,
+Wheaton,18,31,The Atalanta,433,1820
+Wheaton,18,31,United States v. Lancaster,434,
+Wheaton,19,32,The Amiable Isabella,1,1821
+Wheaton,19,32,Bussard v. Levering,102,1821
+Wheaton,19,32,Lindenberger v. Beall,104,1821
+Wheaton,19,32,Mechanics' Bank v. Withers,106,1821
+Wheaton,19,32,Hopkins v. Lee,109,1821
+Wheaton,19,32,Thatcher v. Powell,119,1821
+Wheaton,19,32,Randolph v. Barbour,128,1821
+Wheaton,19,32,Mayhew v. Thatcher,129,1821
+Wheaton,19,32,Farmers' and Mechanics' Bank of Pennsylvania v. Smith,131,1821
+Wheaton,19,32,United States v. Wilkins,135,1821
+Wheaton,19,32,Young v. Bryan,146,1821
+Wheaton,19,32,The Bello Corrunes,152,1821
+Wheaton,19,32,Smith v. Universal Insurance Company,176,1821
+Wheaton,19,32,The Robert Edwards,187,1821
+Wheaton,19,32,The Nueva Anna,193,1821
+Wheaton,19,32,The Collector,194,1821
+Wheaton,19,32,Anderson v. Dunn,204,1821
+Wheaton,19,32,La Conception,235,1821
+Wheaton,19,32,Willinks v. Hollingsworth,240,1821
+Wheaton,19,32,Green v. Watkins,260,1821
+Wheaton,19,32,Cohens v. Virginia,264,1821
+Wheaton,19,32,Gibbons v. Ogden,448,1821
+Wheaton,19,32,Sullivan v. Fulton Steamboat Company,450,1821
+Wheaton,19,32,The Jonquille,452,1821
+Wheaton,19,32,Hughes v. Blake,453,1821
+Wheaton,19,32,Bartle v. Coleman,475,1821
+Wheaton,19,32,Prevost v. Gratz,481,1821
+Wheaton,19,32,Bowie v. Henderson,514,1821
+Wheaton,19,32,Spring v. South Carolina Insurance Company,519,1821
+Wheaton,19,32,United States v. Six Packages of Goods,520,1821
+Wheaton,19,32,Brashier v. Gratz,528,1821
+Wheaton,19,32,United States v. Daniel,542,1821
+Wheaton,19,32,Kerr v. Watts,550,1821
+Wheaton,19,32,Leeds v. Marine Insurance Company,565,1821
+Wheaton,19,32,Union Bank v. Hyde,572,1821
+Wheaton,19,32,Clark v. Graham,577,1821
+Wheaton,19,32,Preston's Heirs v. Bowmar,580,1821
+Wheaton,19,32,Otis v. Walter,583,1821
+Wheaton,19,32,Goszler v. Town of Georgetown,593,1821
+Wheaton,19,32,M'Clung v. Silliman,598,1821
+Wheaton,19,32,Mutual Assurance Society v. Faxon,606,1821
