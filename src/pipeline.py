@@ -38,8 +38,8 @@ def _write_csv(path, cols, rows):
 def stage_extract():
     """Extract: mirror clusters + opinions VERBATIM into data/raw/{clusters,opinions}/.
 
-    Decision-independent — scope is `docket__court=scotus` only, all buckets, full API fields, no
-    reshaping. Opinions are fetched for EVERY cluster (not just KEEP). Writes the run manifest and
+    Decision-independent — scope is `docket__court=scotus` only, every cluster, full API fields,
+    no reshaping. Opinions are fetched for EVERY cluster, kept or not. Writes the run manifest and
     runs cheap coverage/orphan integrity checks over the mirror."""
     settings.ensure_dirs()
     manifest = extract.extract(
@@ -125,10 +125,11 @@ def stage_materialize():
 def stage_scope():
     """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
 
-    Reads the staging DB, adjudicates via reporter authority (Cranch/Wheaton were SCOTUS-only)
-    and, within Dallas, scdb_id + the curated exceptions, and writes the derived stg_cluster_scope
-    table (is_scotus + evidence + proposed disposition). Propose-only and non-destructive: nothing
-    is dropped here; a later stage executes the dispositions."""
+    Reads the staging DB and the human-review ledger (dataset/scope_review.csv, authoritative),
+    adjudicates the rest via reporter authority (Cranch/Wheaton were SCOTUS-only) and, within
+    Dallas, scdb_id, and writes the derived stg_cluster_scope table (is_scotus + evidence +
+    proposed disposition). Propose-only and non-destructive: nothing is dropped here; a later
+    stage executes the dispositions."""
     proposals = scope.run_scope()
     counts = Counter(proposal.is_scotus for proposal in proposals)
     print(

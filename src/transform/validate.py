@@ -9,9 +9,9 @@ duplicate or an anomaly). Per-volume is the sole reconciliation authority: a rep
 volume has a fixed table of contents, so its case count is a stable ground truth (year
 counts drift on term-vs-decision-date attribution).
 
-Final-corpus scope is U.S. Reports vols 2-18, the same span as v1. Vol 19 (1821
-Wheaton) is pulled into staging only as an extract buffer so a year-based edge case
-cannot be dropped; it is reported separately and excluded from the corpus totals.
+Final-corpus scope is U.S. Reports vols 2-18. Vol 19 (1821 Wheaton) is pulled into
+staging only as an extract buffer so a year-based edge case cannot be dropped; it is
+reported separately and excluded from the corpus totals.
 
 This stage reads only (stg_cluster_dedup + the reference) and writes a report; it
 changes no corpus data.

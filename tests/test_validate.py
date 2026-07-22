@@ -1,7 +1,8 @@
 """Tests for src.transform.validate — reconcile the KEEP set against the reference.
 
-Pure unit tests for the matcher, plus a data-quality test over the real staging DB
-(skipped when absent) that guards the v1 fixes the report is meant to confirm.
+Pure unit tests for the matcher, plus data-quality tests over the real staging DB
+(skipped when absent) that pin the reconciliation outcomes the report is meant to
+confirm.
 """
 
 import csv
@@ -128,8 +129,10 @@ def test_corpus_is_volumes_2_to_18_only():
 
 
 def test_volume_4_reconciles_fully():
-    """v1 shipped 13 cases for 4 U.S. against the reference's 14 (dropped Hazlehurst).
-    v2 must reconcile 14/14 with no missing case -- the concrete v1 fix."""
+    """Volume 4 must reconcile 14/14 against the reference, Hazlehurst included.
+
+    An scdb-only Dallas rule silently drops Hazlehurst (CourtListener never assigned
+    it an scdb_id); the scope_review ledger keeps it, and this pins that outcome."""
     result = next(r for r in _real_results() if r.volume == 4)
     assert result.n_reference == 14
     assert result.missing == [], f"vol 4 missing: {[c.name for c in result.missing]}"

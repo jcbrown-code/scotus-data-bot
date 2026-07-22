@@ -45,8 +45,8 @@ def _request(url, headers, timeout=60, pace=False):
     """GET one page with retry on 429 / 5xx / transient network errors.
 
     Returns (body, meta) where meta records the reliability trace for the run log:
-    {"attempts": n, "retry_after": [secs...], "server_errors": [codes...]}. The public `_get`
-    wraps this and returns just the body for back-compat with the legacy stages."""
+    {"attempts": n, "retry_after": [secs...], "server_errors": [codes...]}. `_get` wraps
+    this and returns just the body for callers that don't need the trace."""
     req = urllib.request.Request(url, headers=headers)
     meta = {"attempts": 0, "retry_after": [], "server_errors": []}
     for attempt in range(6):
@@ -130,7 +130,7 @@ def fetch_clusters(after, before, token, pause=0.3, fields=CLUSTER_FIELDS):
 # Raw mirror (Extract stage): faithful, decision-independent, validated.
 #
 # Scope = docket__court=scotus only. Every record is stored VERBATIM (no field filter/reshape)
-# as one JSON per record; opinions fetched for EVERY cluster (all buckets). The pull is proven by
+# as one JSON per record; opinions fetched for EVERY cluster, kept or not. The pull is proven by
 # schema validation + pagination-continuity + coverage + idempotency. Apparatus rides on the full
 # cluster record, so there is no separate apparatus fetch.
 # ---------------------------------------------------------------------------
@@ -246,7 +246,7 @@ def fetch_clusters_raw(after, before, token, clusters_dir):
 
 
 def fetch_opinions_raw(token, clusters_dir, opinions_dir):
-    """Mirror the opinions of EVERY stored cluster verbatim (all buckets — decoupled from KEEP).
+    """Mirror the opinions of EVERY stored cluster verbatim — decoupled from any keep decision.
 
     Resumable: skips a cluster whose sub_opinions are all stored. Asserts single-page
     and coverage (every declared sub_opinion is returned). Returns a per-cluster run log."""

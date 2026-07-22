@@ -20,7 +20,7 @@ DATASET_DIR = os.path.join(ROOT, "dataset")  # committed: small reviewable snaps
 # reporter apparatus (headmatter/summary/…) — a separate, optional pull; see src/apparatus.py
 RAW_APPARATUS = os.path.join(RAW_DIR, "raw_apparatus.json")
 
-# Verbatim raw mirror (Extract stage): one JSON per record, ALL buckets, FULL API fields, no
+# Verbatim raw mirror (Extract stage): one JSON per record, EVERY cluster, FULL API fields, no
 # reshaping. Distributed as a GitHub Release asset (not committed, to keep clones slim); the
 # committed CHECKSUMS.sha256 + extract_manifest.json pin and trace it, and `--stage fetch-mirror`
 # downloads + verifies it (see src/mirror.py). Apparatus rides on the cluster record, so
