@@ -96,13 +96,34 @@ def test_scdb_anchors_never_merge_via_a_shared_nonscdb():
     assert [1, 3] in ids and [2] in ids
 
 
-def test_offpage_requires_both_name_and_text():
+def test_offpage_far_page_requires_both_name_and_text():
     body = " ".join(f"w{i}" for i in range(200))
     a = _cluster(1, "The Diana", page="27", text=body)
-    b = _cluster(2, "The Diana", page="58", text=body)  # same case, different page
+    b = _cluster(2, "The Diana", page="58", text=body)  # same case, far page
     c = _cluster(3, "The Diana", page="99", text="wholly different opinion text here now")
     assert dedup.classify_offpage_pair(a, b) is True  # name + text
     assert dedup.classify_offpage_pair(a, c) is False  # name only, no text corroboration
+
+
+def test_offpage_adjacent_identical_caption_merges_without_text():
+    # a case's start page indexed a page apart, second copy a text-poor stub: an
+    # obvious duplicate the text requirement must not block (Capron 126/127).
+    body = " ".join(f"w{i}" for i in range(200))
+    a = _cluster(1, "Capron v. Van Noorden", page="126", text=body)
+    b = _cluster(2, "Capron v. Van Noorden", page="127", text="stub")  # no text overlap
+    assert dedup.classify_offpage_pair(a, b) is True
+    # a different case at the same adjacent distance is NOT merged without text
+    c = _cluster(3, "Head v. Providence Insurance", page="127", text="stub")
+    assert dedup.classify_offpage_pair(a, c) is False
+
+
+def test_offpage_adjacent_distinct_series_not_merged():
+    # numbered-series cases (The Frances IV vs V) at adjacent pages canonicalize
+    # identically (roman numerals stripped) but are DISTINCT: both carry a substantial,
+    # differing opinion, so the stub exception must not apply -- text keeps them apart.
+    left = _cluster(1, "The Frances", page="358", text=" ".join(f"a{i}" for i in range(200)))
+    right = _cluster(2, "The Frances", page="359", text=" ".join(f"b{i}" for i in range(200)))
+    assert dedup.classify_offpage_pair(left, right) is False
 
 
 def test_build_records_labels_canonical_and_duplicates():

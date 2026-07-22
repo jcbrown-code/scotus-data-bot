@@ -46,9 +46,16 @@ MIN_SHARED_SHINGLES = 30
 SHINGLE_SIZE = 5  # word n-gram length
 # The same decision sometimes appears at two different page numbers in one volume
 # (The Diana at 16 U.S. 27 and 58). Matching across pages is riskier -- distinct
-# cases can share a recurring party name -- so it requires BOTH a high-similarity
-# caption and text corroboration, not either alone.
+# cases can share a recurring party name -- so by default it requires BOTH a
+# high-similarity caption and text corroboration, not either alone.
 OFFPAGE_NAME_THRESHOLD = 0.85
+# Narrow exception (see classify_offpage_pair): an adjacent-page pair with a
+# near-identical caption where one copy is a content-poor stub (a case's start page
+# indexed a page or two apart, the stub carrying no independent opinion -- Capron v.
+# Van Noorden at 6 U.S. 126 and a 14-shingle stub at 127). The stub can never
+# corroborate via text, so the text requirement would wrongly block an obvious merge.
+ADJACENT_PAGE_WINDOW = 2
+ADJACENT_PAGE_NAME_THRESHOLD = 0.9
 
 # Caption tokens dropped before comparison (legal connectives).
 _STOP_WORDS = {"v", "the", "of", "a", "and", "et", "al", "in", "for"}
@@ -99,6 +106,17 @@ def overlap_coefficient(left: frozenset, right: frozenset) -> tuple[float, int]:
         return 0.0, 0
     shared = len(left & right)
     return shared / min(len(left), len(right)), shared
+
+
+def _page_number(page) -> int | None:
+    """Leading integer of a us_page string (TEXT; may be blank or non-numeric)."""
+    digits = ""
+    for char in str(page or ""):
+        if char.isdigit():
+            digits += char
+        else:
+            break
+    return int(digits) if digits else None
 
 
 class Cluster(NamedTuple):
@@ -178,14 +196,30 @@ def group_page_clusters(clusters: list[Cluster]) -> list[list[Cluster]]:
 def classify_offpage_pair(a: Cluster, b: Cluster) -> bool:
     """Whether two clusters at different pages of a volume are the same decision.
 
-    Stricter than the same-page test: a high-similarity caption AND heavy text
-    overlap, both, since a shared party name across pages is not enough on its own."""
+    A high-similarity caption AND heavy text overlap, since a shared party name
+    across pages is not enough on its own. One narrow exception: an adjacent-page pair
+    with a near-identical caption where one copy is a content-poor stub (too small to
+    ever corroborate via text). A stub is a duplicate pointer, not an independent
+    decision -- unlike a numbered-series case (The Frances IV vs V, at consecutive
+    pages, identical after roman-numeral stripping) whose copies are both substantial
+    with differing text, which the text requirement correctly keeps apart."""
     if a.scdb_id and b.scdb_id and a.scdb_id != b.scdb_id:
         return False
-    if score_name_similarity(a.case_name, b.case_name) < OFFPAGE_NAME_THRESHOLD:
+    name_similarity = score_name_similarity(a.case_name, b.case_name)
+    if name_similarity < OFFPAGE_NAME_THRESHOLD:
         return False
     coefficient, shared = overlap_coefficient(a.shingles, b.shingles)
-    return coefficient >= TEXT_OVERLAP_THRESHOLD and shared >= MIN_SHARED_SHINGLES
+    if coefficient >= TEXT_OVERLAP_THRESHOLD and shared >= MIN_SHARED_SHINGLES:
+        return True  # text corroborates
+    page_a, page_b = _page_number(a.us_page), _page_number(b.us_page)
+    smallest = min(len(a.shingles), len(b.shingles))
+    return (
+        name_similarity >= ADJACENT_PAGE_NAME_THRESHOLD
+        and page_a is not None
+        and page_b is not None
+        and abs(page_a - page_b) <= ADJACENT_PAGE_WINDOW
+        and smallest < MIN_SHARED_SHINGLES  # a stub -- cannot corroborate, so it never could
+    )
 
 
 def _canonical_sort_key(cluster: Cluster) -> tuple:
