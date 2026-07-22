@@ -228,6 +228,7 @@ def _verdicts_for(clusters, by_id, name_substring, us_cite):
         ("Marbury", "5 U.S. 137"),  # Cranch, reporter authority
         ("Hazlehurst", "4 U.S. 6"),  # Dallas, kept only via the ledger
         ("Oswald", "2 U.S. 402"),  # Dallas, kept only via the ledger (third Oswald)
+        ("Hallowell", "3 U.S. 410"),  # Dallas, kept only via the ledger (admission transfer)
     ],
 )
 def test_landmark_decisions_are_kept(name, cite):
