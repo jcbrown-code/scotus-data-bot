@@ -23,7 +23,7 @@ from collections import Counter
 
 from config import settings
 from src import apparatus, extract, load, mirror, transform_legacy
-from src.transform import materialize, scope
+from src.transform import dedup, materialize, scope
 
 
 def _write_csv(path, cols, rows):
@@ -136,6 +136,22 @@ def stage_scope():
         file=sys.stderr,
     )
     return proposals
+
+
+def stage_dedup():
+    """Transform stage 3: collapse duplicate records of the same decision.
+
+    Reads the scope keep-candidates and writes stg_cluster_dedup labeling each cluster
+    canonical or duplicate (dup_of), using scdb identity + caption + opinion-text overlap.
+    Label-only and non-destructive: stg_opinions is untouched, the 1:many hierarchy intact."""
+    records = dedup.run_dedup()
+    canonical = sum(1 for record in records if record.dedup_role == "canonical")
+    print(
+        f"dedup: {len(records)} keep-candidates -> {canonical} canonical / "
+        f"{len(records) - canonical} duplicate -> stg_cluster_dedup",
+        file=sys.stderr,
+    )
+    return records
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -324,6 +340,7 @@ def main():
             "fetch-mirror",
             "materialize",
             "scope",
+            "dedup",
             "clusters",
             "text",
             "load",
@@ -351,6 +368,8 @@ def main():
         stage_materialize()
     if args.stage == "scope":
         stage_scope()
+    if args.stage == "dedup":
+        stage_dedup()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
