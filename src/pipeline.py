@@ -23,7 +23,7 @@ from collections import Counter
 
 from config import settings
 from src import apparatus, extract, load, mirror, transform_legacy
-from src.transform import dedup, materialize, scope, validate
+from src.transform import dedup, materialize, reselect, scope, validate
 
 
 def _write_csv(path, cols, rows):
@@ -164,6 +164,25 @@ def stage_validate():
     keep = validate.read_canonical_keep(settings.STAGING_DB_PATH)
     print(validate.format_report(results, keep, settings.WIKI_ANNUAL), file=sys.stderr)
     return results
+
+
+def stage_reselect():
+    """Transform stage 5: choose the best source-text field per corpus opinion.
+
+    Writes stg_opinion_source (chosen_source + is_ocr_dirty + type) by priority
+    html_lawbox -> xml_harvard -> html. Non-destructive: records the choice only, leaves
+    all source fields in stg_opinions; per opinion row, so combined + split both kept."""
+    selections = reselect.run_reselect()
+    by_src = Counter(s.chosen_source for s in selections)
+    dirty = sum(1 for s in selections if s.is_ocr_dirty)
+    print(
+        f"reselect: {len(selections)} opinions -> "
+        f"lawbox {by_src.get('source_html_lawbox', 0)} / "
+        f"harvard {by_src.get('source_xml_harvard', 0)} / "
+        f"html {by_src.get('source_html', 0)}; {dirty} ocr-dirty -> stg_opinion_source",
+        file=sys.stderr,
+    )
+    return selections
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -354,6 +373,7 @@ def main():
             "scope",
             "dedup",
             "validate",
+            "reselect",
             "clusters",
             "text",
             "load",
@@ -385,6 +405,8 @@ def main():
         stage_dedup()
     if args.stage == "validate":
         stage_validate()
+    if args.stage == "reselect":
+        stage_reselect()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
