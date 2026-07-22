@@ -29,8 +29,9 @@ def test_build_timestamp_default(monkeypatch):
 
 
 def test_ensure_dirs(tmp_path, monkeypatch):
-    for attr in ("RAW_DIR", "PROCESSED_DIR", "DATASET_DIR", "FULLTEXT_DIR"):
+    dirs = ("RAW_DIR", "PROCESSED_DIR", "DATASET_DIR", "RAW_CLUSTERS_DIR", "RAW_OPINIONS_DIR")
+    for attr in dirs:
         monkeypatch.setattr(settings, attr, str(tmp_path / attr))
     settings.ensure_dirs()
-    for attr in ("RAW_DIR", "PROCESSED_DIR", "DATASET_DIR", "FULLTEXT_DIR"):
+    for attr in dirs:
         assert os.path.isdir(getattr(settings, attr))

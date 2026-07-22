@@ -1,10 +1,6 @@
-"""Tests for src.pipeline orchestration (no network; settings paths monkeypatched)."""
+"""Tests for src.pipeline orchestration (no network)."""
 
-import csv
-import json
-
-from config import settings
-from src import extract, pipeline
+from src import pipeline
 
 
 def test_write_csv(tmp_path):
@@ -14,75 +10,3 @@ def test_write_csv(tmp_path):
     assert lines[0] == "a,b"
     assert lines[1] == "1,2"
     assert lines[2] == "3,"  # missing key -> empty cell
-
-
-def test_validate_prints_total(capsys):
-    pipeline._validate([{"dateFiled": "1805-02-01"}, {"dateFiled": "1805-03-01"}])
-    assert "TOT" in capsys.readouterr().out
-
-
-def test_stage_clusters_from_cache(tmp_path, monkeypatch, sample_raw_clusters):
-    raw_path = tmp_path / "raw.json"
-    raw_path.write_text(json.dumps(sample_raw_clusters))
-    monkeypatch.setattr(settings, "ensure_dirs", lambda: None)
-    monkeypatch.setattr(settings, "RAW_CLUSTERS", str(raw_path))
-    for attr in ("ALL_CLUSTERS_CSV", "REVIEW_CSV", "DUPLICATES_CSV", "KEEP_CSV"):
-        monkeypatch.setattr(settings, attr, str(tmp_path / f"{attr}.csv"))
-
-    keep = pipeline.stage_clusters(from_cache=True, validate=True)
-
-    assert [r["cluster_id"] for r in keep] == [10]  # dedup collapsed the Harvard copy
-    assert (tmp_path / "KEEP_CSV.csv").exists()
-    assert (tmp_path / "DUPLICATES_CSV.csv").exists()
-
-
-def test_stage_load(monkeypatch, capsys):
-    class FakeConn:
-        def close(self):
-            pass
-
-    monkeypatch.setattr(settings, "ensure_dirs", lambda: None)
-    monkeypatch.setattr(
-        pipeline.load, "build_db", lambda *a, **k: (FakeConn(), {"n_keep_decisions": 663})
-    )
-    pipeline.stage_load()
-    assert "663" in capsys.readouterr().out
-
-
-def test_stage_text_logs_failures(tmp_path, monkeypatch):
-    """A failed opinion fetch is recorded durably in FAILURES_CSV, not just stderr."""
-    keep = tmp_path / "keep.csv"
-    keep.write_text(
-        "cluster_id,caseName,us_cite,dateFiled,scdb_id,source\n"
-        "99,Foo v. Bar,5 U.S. 1,1801-01-01,,L\n"
-    )
-    fulltext = tmp_path / "fulltext"
-    fulltext.mkdir()
-    monkeypatch.setattr(settings, "ensure_dirs", lambda: None)
-    monkeypatch.setattr(settings, "KEEP_CSV", str(keep))
-    monkeypatch.setattr(settings, "FULLTEXT_DIR", str(fulltext))
-    monkeypatch.setattr(settings, "MANIFEST_CSV", str(tmp_path / "manifest.csv"))
-    monkeypatch.setattr(settings, "FAILURES_CSV", str(tmp_path / "failures.csv"))
-    monkeypatch.setenv("COURTLISTENER_API_TOKEN", "x")
-
-    def boom(cid, headers):
-        raise RuntimeError("kaboom")
-
-    monkeypatch.setattr(extract, "fetch_opinions", boom)
-
-    pipeline.stage_text()
-
-    rows = list(csv.DictReader(open(tmp_path / "failures.csv")))
-    assert len(rows) == 1
-    assert rows[0]["cluster_id"] == "99"
-    assert "kaboom" in rows[0]["error"]
-
-
-def test_main_runs_all_stages(monkeypatch):
-    called = []
-    monkeypatch.setattr(pipeline, "stage_clusters", lambda **k: called.append("clusters"))
-    monkeypatch.setattr(pipeline, "stage_text", lambda **k: called.append("text"))
-    monkeypatch.setattr(pipeline, "stage_load", lambda: called.append("load"))
-    monkeypatch.setattr(pipeline.sys, "argv", ["prog", "--stage", "all", "--from-cache"])
-    pipeline.main()
-    assert called == ["clusters", "text", "load"]

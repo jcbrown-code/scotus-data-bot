@@ -22,9 +22,6 @@ CLUSTER_FIELDS = (
 )
 
 OPINIONS_URL = "https://www.courtlistener.com/api/rest/v4/opinions/"
-OPINION_FIELDS = (
-    "id,type,author_str,extracted_by_ocr,html_with_citations,plain_text,xml_harvard,html"
-)
 
 # Reporter apparatus (front matter the opinion body omits): the Harvard-CAP headmatter and the
 # reporter's summary / syllabus / arguments of counsel, plus small cluster-level metadata. Pulled
@@ -86,7 +83,7 @@ def _request(url, headers, timeout=60, pace=False):
 
 
 def _get(url, headers, timeout=60, pace=False):
-    """Back-compat shim: return just the response body (legacy stages call this)."""
+    """Return just the response body (fetch_clusters and the tests call this)."""
     body, _meta = _request(url, headers, timeout=timeout, pace=pace)
     return body
 
@@ -127,17 +124,6 @@ def fetch_clusters(after, before, token, pause=0.3, fields=CLUSTER_FIELDS):
                 time.sleep(pause)
         print(f"  {year}: +{len(rows) - start_count}  (total {len(rows)})", file=sys.stderr)
     return rows
-
-
-def fetch_opinions(cluster_id, headers):
-    """Return the raw opinion API objects for one cluster (adaptively paced)."""
-    url = (
-        OPINIONS_URL
-        + "?"
-        + urllib.parse.urlencode({"cluster": cluster_id, "fields": OPINION_FIELDS})
-    )
-    body = _get(url, headers, timeout=90, pace=True)
-    return body.get("results", [])
 
 
 # ---------------------------------------------------------------------------

@@ -17,9 +17,6 @@ RAW_DIR = os.path.join(DATA_DIR, "raw")  # raw mirror (Release-distributed) + gi
 PROCESSED_DIR = os.path.join(DATA_DIR, "processed")  # gitignored: working CSVs + the .sqlite
 DATASET_DIR = os.path.join(ROOT, "dataset")  # committed: small reviewable snapshot
 
-# raw API dumps
-RAW_CLUSTERS = os.path.join(RAW_DIR, "raw_clusters.json")
-FULLTEXT_DIR = os.path.join(RAW_DIR, "fulltext")
 # reporter apparatus (headmatter/summary/…) — a separate, optional pull; see src/apparatus.py
 RAW_APPARATUS = os.path.join(RAW_DIR, "raw_apparatus.json")
 
@@ -36,18 +33,10 @@ CHECKSUMS_PATH = os.path.join(RAW_DIR, "CHECKSUMS.sha256")  # committed per-reco
 GITHUB_REPO = "jcbrown-code/scotus-data-bot"
 RAW_MIRROR_TAG = "raw-mirror-v1"
 
-# processed (gitignored) staging
-REVIEW_CSV = os.path.join(PROCESSED_DIR, "review.csv")
-DUPLICATES_CSV = os.path.join(PROCESSED_DIR, "duplicates.csv")
-# durable per-run log of KEEP clusters whose opinion-text fetch failed (should be empty)
-FAILURES_CSV = os.path.join(PROCESSED_DIR, "text_fetch_failures.csv")
-
 # committed snapshot (the human-reviewable provenance / audit trail)
-# all_clusters.csv holds ALL 1,076 clusters with bucket + dedup_role + dup_of — the full,
-# git-visible record of every filtered/de-duplicated row (nothing dropped without a trace).
+# all_clusters.csv is the V1 cluster snapshot the apparatus stage still keys its corpus
+# resolution on; it is replaced when the V2 load stage ships its own corpus export.
 ALL_CLUSTERS_CSV = os.path.join(DATASET_DIR, "all_clusters.csv")
-KEEP_CSV = os.path.join(DATASET_DIR, "keep.csv")
-MANIFEST_CSV = os.path.join(DATASET_DIR, "fulltext_manifest.csv")
 # committed snapshot of reporter-apparatus coverage (which clusters carry which apparatus kinds)
 APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
 # human-review ledger: dispositions a person adjudicated against the reference/record that
@@ -61,7 +50,6 @@ CASE_NAME_REFERENCE_CSV = os.path.join(DATASET_DIR, "case_name_reference.csv")
 VALIDATE_REPORT_CSV = os.path.join(DATASET_DIR, "validate_report.csv")
 
 # database artifacts
-DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.sqlite"))
 # separate, optional apparatus asset (ATTACH-able, keyed on cluster_id); core DB stays untouched
 APPARATUS_DB_PATH = os.environ.get(
     "SCOTUS_APPARATUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-apparatus.sqlite")
@@ -71,7 +59,6 @@ APPARATUS_DB_PATH = os.environ.get(
 STAGING_DB_PATH = os.environ.get(
     "SCOTUS_STAGING_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-staging.sqlite")
 )
-DB_DSN = os.environ.get("SCOTUS_DB_DSN")  # postgres connection string (optional)
 
 # ---- run parameters --------------------------------------------------------
 AFTER = os.environ.get("SCOTUS_AFTER", "1790-01-01")
@@ -80,66 +67,6 @@ AFTER = os.environ.get("SCOTUS_AFTER", "1790-01-01")
 # superset; precise scoping to reporter volumes 2–18 is a downstream transform concern.
 BEFORE = os.environ.get("SCOTUS_BEFORE", "1821-12-31")
 PIPELINE_VERSION = "2.0"
-
-# Wikipedia "Number of U.S. Supreme Court cases decided by year", 1791-1820 — the
-# external benchmark the de-duplicated KEEP counts are validated against.
-WIKI_ANNUAL = {
-    1791: 4,
-    1792: 3,
-    1793: 2,
-    1794: 1,
-    1795: 6,
-    1796: 16,
-    1797: 8,
-    1798: 5,
-    1799: 9,
-    1800: 10,
-    1801: 5,
-    1802: 0,
-    1803: 19,
-    1804: 14,
-    1805: 24,
-    1806: 28,
-    1807: 19,
-    1808: 32,
-    1809: 46,
-    1810: 39,
-    1811: 0,
-    1812: 40,
-    1813: 46,
-    1814: 48,
-    1815: 40,
-    1816: 43,
-    1817: 42,
-    1818: 38,
-    1819: 33,
-    1820: 27,
-}
-
-# CSV column order for the cluster staging files
-CLUSTER_COLS = [
-    "cluster_id",
-    "caseName",
-    "us_cite",
-    "volume",
-    "scdb_id",
-    "source",
-    "citation_count",
-    "precedential_status",
-    "dateFiled",
-    "bucket",
-    "dedup_role",
-    "dup_of",
-]
-MANIFEST_COLS = [
-    "cluster_id",
-    "caseName",
-    "us_cite",
-    "dateFiled",
-    "n_opinions",
-    "total_chars",
-    "text_sources",
-]
 
 
 def get_token():
@@ -180,7 +107,6 @@ def ensure_dirs():
         RAW_DIR,
         PROCESSED_DIR,
         DATASET_DIR,
-        FULLTEXT_DIR,
         RAW_CLUSTERS_DIR,
         RAW_OPINIONS_DIR,
     ):

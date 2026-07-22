@@ -13,12 +13,10 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=4.0", "ruff>=0.6", "datasette>=0.64", "hypothesis>=6.0"]
-postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "ruff>=0.6", "datasette>=0.64"]
 
 [project.scripts]
 scotus-pipeline = "src.pipeline:main"
-scotus-load = "src.load:main"
 
 [tool.setuptools]
 packages = ["config", "src"]

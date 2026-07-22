@@ -1,7 +1,8 @@
 """Tests for src.extract — offline; network is mocked via monkeypatching urlopen / `_get`.
 
-Covers the legacy fetch helpers AND the raw-mirror reliability guarantees: rate-limit/backoff,
-schema validation, verbatim+deterministic storage, pagination continuity, coverage, idempotency."""
+Covers the cluster fetch (apparatus pull) AND the raw-mirror reliability guarantees: rate-limit/
+backoff, schema validation, verbatim+deterministic storage, pagination continuity, coverage,
+idempotency."""
 
 import email.message
 import io
@@ -29,14 +30,6 @@ def test_fetch_clusters_paginates_and_dedupes(monkeypatch):
     monkeypatch.setattr(extract.time, "sleep", lambda *_: None)
     rows = extract.fetch_clusters("1805-01-01", "1805-12-31", "tok")
     assert [r["id"] for r in rows] == [1, 2, 3]
-
-
-def test_fetch_opinions_returns_results(monkeypatch):
-    monkeypatch.setattr(
-        extract, "_get", lambda url, headers, **kw: {"results": [{"id": 9, "type": "010combined"}]}
-    )
-    ops = extract.fetch_opinions(9, {"Authorization": "Token tok"})
-    assert ops == [{"id": 9, "type": "010combined"}]
 
 
 def test_get_retries_then_succeeds(monkeypatch):

@@ -34,18 +34,6 @@ SELECT CASE
        count(*) AS decisions
 FROM scotus_decisions GROUP BY 1 ORDER BY min(volume);
 
-SELECT '== PER YEAR vs WIKIPEDIA ==' AS section;
-WITH wiki(y,n) AS (VALUES
-  (1791,4),(1792,3),(1793,2),(1794,1),(1795,6),(1796,16),(1797,8),(1798,5),(1799,9),
-  (1800,10),(1801,5),(1802,0),(1803,19),(1804,14),(1805,24),(1806,28),(1807,19),
-  (1808,32),(1809,46),(1810,39),(1811,0),(1812,40),(1813,46),(1814,48),(1815,40),
-  (1816,43),(1817,42),(1818,38),(1819,33),(1820,27)),
-ours AS (SELECT CAST(substr(date_filed,1,4) AS INT) y, count(*) n
-         FROM scotus_decisions GROUP BY 1)
-SELECT wiki.y AS year, COALESCE(ours.n,0) AS keep, wiki.n AS wikipedia,
-       COALESCE(ours.n,0)-wiki.n AS delta
-FROM wiki LEFT JOIN ours ON ours.y=wiki.y ORDER BY wiki.y;
-
 SELECT '== LONGEST & SHORTEST OPINIONS ==' AS section;
 SELECT c.case_name, c.us_cite, o.char_count
 FROM opinions o JOIN clusters c ON c.cluster_id=o.cluster_id

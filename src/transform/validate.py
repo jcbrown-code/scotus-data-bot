@@ -5,8 +5,9 @@ SCOTUS decisions, per U.S. Reports volume, against ``dataset/case_name_reference
 -- the authoritative by-volume case list (SCDB / Wikipedia ingest) -- and reports,
 for each volume: how many we kept, how many the reference lists, how many matched,
 which reference cases we are MISSING, and which of ours are EXTRA (a residual
-duplicate or an anomaly). Per-volume is the primary check; a per-year panel is
-secondary (year attribution drifts on term-vs-decision-date, so it is not the target).
+duplicate or an anomaly). Per-volume is the sole reconciliation authority: a reporter
+volume has a fixed table of contents, so its case count is a stable ground truth (year
+counts drift on term-vs-decision-date attribution).
 
 Final-corpus scope is U.S. Reports vols 2-18, the same span as v1. Vol 19 (1821
 Wheaton) is pulled into staging only as an extract buffer so a year-based edge case
@@ -294,8 +295,8 @@ def write_report(staging_db_path: str, report_csv_path: str, results: list) -> N
             )
 
 
-def format_report(results: list, keep_by_volume: dict, wiki_annual: dict) -> str:
-    """Human-readable per-volume (primary) + per-year (secondary) reconciliation."""
+def format_report(results: list) -> str:
+    """Human-readable per-volume reconciliation of the final corpus vs the reference."""
     lines = ["", "PER-VOLUME reconciliation vs reference (final corpus, U.S. vols 2-18):"]
     lines.append(
         f"  {'vol':>3} {'keep':>5} {'ref':>4} {'match':>5} {'miss':>4} {'extra':>5}  status"
@@ -339,19 +340,6 @@ def format_report(results: list, keep_by_volume: dict, wiki_annual: dict) -> str
     if detail:
         lines.append("  detail (reference cases missing, and kept clusters not in the reference):")
         lines.extend(detail)
-
-    lines.append("")
-    lines.append("PER-YEAR (secondary; date_filed attribution drifts, not the target):")
-    per_year = collections.Counter(
-        int(c.date_filed[:4])
-        for clusters in keep_by_volume.values()
-        for c in clusters
-        if c.date_filed[:4].isdigit()
-    )
-    for year in sorted(per_year):
-        wiki = wiki_annual.get(year)
-        delta = f"  wiki={wiki} (Δ{per_year[year] - wiki:+d})" if wiki is not None else ""
-        lines.append(f"    {year}: keep={per_year[year]}{delta}")
     return "\n".join(lines)
 
 
