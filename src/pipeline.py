@@ -23,7 +23,7 @@ from collections import Counter
 
 from config import settings
 from src import apparatus, extract, load, mirror, transform_legacy
-from src.transform import dedup, materialize, reselect, scope, validate
+from src.transform import clean_opinions, dedup, materialize, reselect, scope, validate
 
 
 def _write_csv(path, cols, rows):
@@ -183,6 +183,24 @@ def stage_reselect():
         file=sys.stderr,
     )
     return selections
+
+
+def stage_clean():
+    """Transform stage 6: clean_text per corpus opinion from its chosen source.
+
+    Runs each opinion's reselect-chosen source through the shared deterministic cleaner
+    (src/clean.py) and writes stg_opinion_clean (clean_text + version + ocr_suspect) and
+    stg_page_break. Non-destructive; reuses the tested cleaner (star-pagination -> page
+    breaks, both dialects, NFC, no OCR correction, keeps captions/headers)."""
+    cleaned = clean_opinions.run_clean()
+    n_breaks = sum(len(c.page_breaks) for c in cleaned)
+    n_suspect = sum(1 for c in cleaned if c.ocr_suspect)
+    print(
+        f"clean: {len(cleaned)} opinions -> stg_opinion_clean "
+        f"({n_breaks} page-breaks, {n_suspect} with ocr_suspect)",
+        file=sys.stderr,
+    )
+    return cleaned
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -374,6 +392,7 @@ def main():
             "dedup",
             "validate",
             "reselect",
+            "clean",
             "clusters",
             "text",
             "load",
@@ -407,6 +426,8 @@ def main():
         stage_validate()
     if args.stage == "reselect":
         stage_reselect()
+    if args.stage == "clean":
+        stage_clean()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
