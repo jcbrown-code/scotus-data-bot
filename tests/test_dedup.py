@@ -119,6 +119,18 @@ def test_offpage_adjacent_identical_caption_merges_without_text():
     assert dedup.classify_offpage_pair(a, c) is False
 
 
+def test_offpage_different_years_never_merge():
+    """A decision has one year: without a shared page, differing years block the merge
+    (name + text notwithstanding); a missing year never blocks."""
+    body = " ".join(f"w{i}" for i in range(200))
+    a = _cluster(1, "Bingham v. Cabot", page="19", text=body)._replace(year="1795")
+    b = _cluster(2, "Bingham v. Cabot", page="382", text=body)._replace(year="1798")
+    unknown = _cluster(3, "Bingham v. Cabot", page="382", text=body)  # year=None
+    assert dedup.classify_offpage_pair(a, b) is False  # years disagree
+    assert dedup.classify_offpage_pair(a, a._replace(cluster_id=4, us_page="382")) is True
+    assert dedup.classify_offpage_pair(a, unknown) is True  # unknown year never blocks
+
+
 def test_offpage_adjacent_distinct_series_not_merged():
     # numbered-series cases (The Frances IV vs V) at adjacent pages canonicalize
     # identically (roman numerals stripped) but are DISTINCT: both carry a substantial,
@@ -248,31 +260,43 @@ def test_redundant_review_pair_keeps_the_machine_method():
 # ---- round trip --------------------------------------------------------------
 
 
-def test_run_dedup_applies_the_ledger(tmp_path):
+def _make_staging(tmp_path, scope_rows, opinion_rows):
+    """Minimal staging DB for round-trip tests: scope + clusters (dates) + opinions."""
     db_path = str(tmp_path / "staging.sqlite")
     conn = sqlite3.connect(db_path)
     conn.execute(
         "CREATE TABLE stg_cluster_scope (cluster_id INTEGER PRIMARY KEY, us_volume INTEGER, "
         "us_page TEXT, case_name TEXT, scdb_id TEXT, is_scotus TEXT)"
     )
+    conn.execute("CREATE TABLE stg_clusters (cluster_id INTEGER PRIMARY KEY, date_filed TEXT)")
     source_cols = ", ".join(f"{f} TEXT" for f in dedup._SOURCE_FIELDS)
     conn.execute(
         f"CREATE TABLE stg_opinions (opinion_id INTEGER PRIMARY KEY, cluster_id INTEGER, "
         f"{source_cols})"
     )
+    conn.executemany("INSERT INTO stg_cluster_scope VALUES (?,?,?,?,?,?)", scope_rows)
     conn.executemany(
-        "INSERT INTO stg_cluster_scope VALUES (?,?,?,?,?,?)",
+        "INSERT INTO stg_clusters VALUES (?,?)",
+        [(row[0], "1815-01-01") for row in scope_rows],
+    )
+    conn.executemany(
+        "INSERT INTO stg_opinions (opinion_id, cluster_id, source_plain_text) VALUES (?,?,?)",
+        opinion_rows,
+    )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+def test_run_dedup_applies_the_ledger(tmp_path):
+    db_path = _make_staging(
+        tmp_path,
         [
             (1, 16, "36", "The Samuel", None, "true"),  # edition page; machine can't reach
             (2, 16, "77", "The Samuel, Beach", "1818-006", "true"),
         ],
-    )
-    conn.executemany(
-        "INSERT INTO stg_opinions (opinion_id, cluster_id, source_plain_text) VALUES (?,?,?)",
         [(10, 1, "stub text"), (20, 2, "much longer opinion text body here")],
     )
-    conn.commit()
-    conn.close()
     ledger = tmp_path / "dedup_review.csv"
     ledger.write_text(
         "cluster_id,dup_of,us_cite,case_name,disposition,rationale\n"
@@ -290,32 +314,16 @@ def test_run_dedup_applies_the_ledger(tmp_path):
 
 
 def test_run_dedup_writes_table(tmp_path):
-    db_path = str(tmp_path / "staging.sqlite")
-    conn = sqlite3.connect(db_path)
-    conn.execute(
-        "CREATE TABLE stg_cluster_scope (cluster_id INTEGER PRIMARY KEY, us_volume INTEGER, "
-        "us_page TEXT, case_name TEXT, scdb_id TEXT, is_scotus TEXT)"
-    )
-    source_cols = ", ".join(f"{f} TEXT" for f in dedup._SOURCE_FIELDS)
-    conn.execute(
-        f"CREATE TABLE stg_opinions (opinion_id INTEGER PRIMARY KEY, cluster_id INTEGER, "
-        f"{source_cols})"
-    )
     body = " ".join(f"w{i}" for i in range(200))
-    conn.executemany(
-        "INSERT INTO stg_cluster_scope VALUES (?,?,?,?,?,?)",
+    db_path = _make_staging(
+        tmp_path,
         [
             (1, 6, "10", "Ogle v. Lee", None, "true"),
             (2, 6, "10", "Ogle v. Lee", None, "true"),  # same-page dup
             (3, 6, "20", "Faw v. Marsteller", None, "true"),  # distinct
         ],
-    )
-    conn.executemany(
-        "INSERT INTO stg_opinions (opinion_id, cluster_id, source_plain_text) VALUES (?,?,?)",
         [(10, 1, body), (20, 2, body), (30, 3, "alpha beta gamma delta")],
     )
-    conn.commit()
-    conn.close()
 
     # an absent ledger path: the synthetic DB has none of the real ledger's clusters
     records = dedup.run_dedup(db_path, str(tmp_path / "no_ledger.csv"))

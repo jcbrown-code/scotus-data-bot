@@ -135,7 +135,11 @@ def _page_number(page) -> int | None:
 
 
 class Cluster(NamedTuple):
-    """A keep-candidate cluster with the fields dedup compares on."""
+    """A keep-candidate cluster with the fields dedup compares on.
+
+    ``year`` is the decision year (date_filed[:4]) — exact dates drift (Harvard-U
+    records carry term placeholders), but the year is stable and guards the off-page
+    pass. None means unknown and never blocks."""
 
     cluster_id: int
     us_volume: int | None
@@ -143,6 +147,7 @@ class Cluster(NamedTuple):
     case_name: str
     scdb_id: str | None
     shingles: frozenset
+    year: str | None = None
 
 
 def classify_pair(a: Cluster, b: Cluster) -> tuple[bool, str]:
@@ -220,6 +225,8 @@ def classify_offpage_pair(a: Cluster, b: Cluster) -> bool:
     with differing text, which the text requirement correctly keeps apart."""
     if a.scdb_id and b.scdb_id and a.scdb_id != b.scdb_id:
         return False
+    if a.year and b.year and a.year != b.year:
+        return False  # one decision has one year; without a shared page, years must agree
     name_similarity = score_name_similarity(a.case_name, b.case_name)
     if name_similarity < OFFPAGE_NAME_THRESHOLD:
         return False
@@ -406,8 +413,10 @@ def read_keep_candidates(staging_db_path: str) -> list[Cluster]:
     try:
         conn.row_factory = sqlite3.Row
         scoped = conn.execute(
-            "SELECT cluster_id, us_volume, us_page, case_name, scdb_id "
-            "FROM stg_cluster_scope WHERE is_scotus = 'true' ORDER BY cluster_id"
+            "SELECT s.cluster_id, s.us_volume, s.us_page, s.case_name, s.scdb_id, "
+            "c.date_filed "
+            "FROM stg_cluster_scope s JOIN stg_clusters c USING (cluster_id) "
+            "WHERE s.is_scotus = 'true' ORDER BY s.cluster_id"
         ).fetchall()
         source_expr = ", ".join(_SOURCE_FIELDS)
         text_by_cluster: dict[int, str] = {}
@@ -425,6 +434,7 @@ def read_keep_candidates(staging_db_path: str) -> list[Cluster]:
             case_name=row["case_name"] or "",
             scdb_id=row["scdb_id"],
             shingles=build_shingles(text_by_cluster.get(row["cluster_id"], "")),
+            year=(row["date_filed"] or "")[:4] or None,
         )
         for row in scoped
     ]
