@@ -28,8 +28,18 @@ most one decision and can never transitively link two distinct scdb decisions.
 The stage errs toward NOT merging: a missed merge leaves a duplicate that validate
 flags against the reference, while a false merge irreversibly destroys a distinct
 decision.
+
+Above the automated passes sits the human-review ledger (``dataset/dedup_review.csv``):
+same-decision pairs a person adjudicated against the reference and the record, with the
+evidence in each row's rationale (propose -> review -> execute, like scope's ledger).
+A ledger pair is authoritative — it folds records the automated gates cannot reach
+(disposition stubs under the shingle floor, OCR-deflated text overlap, edition-variant
+page numbers) and, where a row documents it, overrides an erroneous scdb tag that the
+hard block would otherwise honor. Canonical selection within the merged group stays
+this stage's policy; the ledger asserts identity, not precedence.
 """
 
+import csv
 import difflib
 import re
 import sqlite3
@@ -56,6 +66,11 @@ OFFPAGE_NAME_THRESHOLD = 0.85
 # corroborate via text, so the text requirement would wrongly block an obvious merge.
 ADJACENT_PAGE_WINDOW = 2
 ADJACENT_PAGE_NAME_THRESHOLD = 0.9
+
+# The one disposition the dedup review ledger (dataset/dedup_review.csv) recognizes today.
+# The column exists so a future "distinct" (never-merge) disposition can be added without
+# a schema change; an unknown value raises rather than silently no-ops.
+REVIEW_DUPLICATE = "duplicate"
 
 # Caption tokens dropped before comparison (legal connectives).
 _STOP_WORDS = {"v", "the", "of", "a", "and", "et", "al", "in", "for"}
@@ -264,8 +279,76 @@ def _merge_offpage_groups(groups: list[list[Cluster]]) -> list[list[Cluster]]:
     return list(merged.values())
 
 
-def build_dedup_records(clusters: list[Cluster]) -> list[DedupRecord]:
-    """Group keep-candidates (same-page, then off-page within a volume); label each."""
+def load_dedup_review(review_path: str = settings.DEDUP_REVIEW_CSV) -> list[tuple[int, int]]:
+    """Load the human-review dedup ledger: (cluster_id, dup_of) same-decision pairs.
+
+    A pair asserts the two clusters record one decision (the CSV rationale carries the
+    evidence); canonical selection still picks which record represents the group. An
+    absent file is an empty ledger; a malformed row raises — a typo must not silently
+    no-op a human disposition."""
+    pairs: list[tuple[int, int]] = []
+    try:
+        with open(review_path, newline="") as handle:
+            for row in csv.DictReader(handle):
+                if not row.get("cluster_id"):
+                    continue
+                disposition = (row.get("disposition") or "").strip()
+                if disposition != REVIEW_DUPLICATE:
+                    raise ValueError(f"dedup_review: unknown disposition {disposition!r}")
+                cluster_id, dup_of = int(row["cluster_id"]), int(row["dup_of"])
+                if cluster_id == dup_of:
+                    raise ValueError(f"dedup_review: cluster {cluster_id} paired with itself")
+                pairs.append((cluster_id, dup_of))
+    except FileNotFoundError:
+        pass
+    return pairs
+
+
+def _apply_review_pairs(
+    machine_groups: list[list[Cluster]], clusters: list[Cluster], pairs: list[tuple[int, int]]
+) -> tuple[list[list[Cluster]], dict[int, int]]:
+    """Union machine-built groups joined by human-review pairs; validate the pairs.
+
+    Returns (final_groups, machine_group_index) where machine_group_index maps each
+    cluster_id to its pre-ledger machine group — used to attribute
+    dup_method='human_review' to exactly the members the ledger connected."""
+    by_id = {cluster.cluster_id: cluster for cluster in clusters}
+    machine_group_index: dict[int, int] = {}
+    for index, group in enumerate(machine_groups):
+        for cluster in group:
+            machine_group_index[cluster.cluster_id] = index
+
+    unknown = sorted({cid for pair in pairs for cid in pair if cid not in by_id})
+    if unknown:
+        raise ValueError(f"dedup_review references non-keep-candidate clusters: {unknown}")
+    for cluster_id, dup_of in pairs:
+        if by_id[cluster_id].us_volume != by_id[dup_of].us_volume:
+            raise ValueError(
+                f"dedup_review pair {cluster_id} -> {dup_of} crosses volumes "
+                f"({by_id[cluster_id].us_volume} vs {by_id[dup_of].us_volume})"
+            )
+
+    parent = list(range(len(machine_groups)))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for cluster_id, dup_of in pairs:
+        parent[find(machine_group_index[cluster_id])] = find(machine_group_index[dup_of])
+    merged: dict[int, list[Cluster]] = {}
+    for index, group in enumerate(machine_groups):
+        merged.setdefault(find(index), []).extend(group)
+    return list(merged.values()), machine_group_index
+
+
+def build_dedup_records(
+    clusters: list[Cluster], review_pairs: list[tuple[int, int]] | None = None
+) -> list[DedupRecord]:
+    """Group keep-candidates (same-page, then off-page within a volume, then the
+    human-review ledger's pairs); label each canonical or duplicate."""
     by_page: dict[tuple, list[Cluster]] = {}
     for cluster in clusters:
         by_page.setdefault((cluster.us_volume, cluster.us_page), []).append(cluster)
@@ -274,21 +357,32 @@ def build_dedup_records(clusters: list[Cluster]) -> list[DedupRecord]:
     for (volume, _page), page_clusters in by_page.items():
         groups_by_volume.setdefault(volume, []).extend(group_page_clusters(page_clusters))
 
-    records: list[DedupRecord] = []
+    machine_groups: list[list[Cluster]] = []
     for groups in groups_by_volume.values():
-        for group in _merge_offpage_groups(groups):
-            canonical = min(group, key=_canonical_sort_key)
-            for cluster in group:
-                if cluster.cluster_id == canonical.cluster_id:
-                    records.append(_record(cluster, "canonical", None, None))
-                    continue
-                if cluster.us_page != canonical.us_page:
-                    method = "off_page"
-                else:
-                    method = classify_pair(cluster, canonical)[1]
-                    if method in ("distinct", "different_scdb"):
-                        method = "grouped"  # transitively linked within the page group
-                records.append(_record(cluster, "duplicate", canonical.cluster_id, method))
+        machine_groups.extend(_merge_offpage_groups(groups))
+    final_groups, machine_group_index = _apply_review_pairs(
+        machine_groups, clusters, review_pairs or []
+    )
+
+    records: list[DedupRecord] = []
+    for group in final_groups:
+        canonical = min(group, key=_canonical_sort_key)
+        for cluster in group:
+            if cluster.cluster_id == canonical.cluster_id:
+                records.append(_record(cluster, "canonical", None, None))
+                continue
+            if (
+                machine_group_index[cluster.cluster_id]
+                != machine_group_index[canonical.cluster_id]
+            ):
+                method = "human_review"  # the ledger, not a machine pass, joined them
+            elif cluster.us_page != canonical.us_page:
+                method = "off_page"
+            else:
+                method = classify_pair(cluster, canonical)[1]
+                if method in ("distinct", "different_scdb"):
+                    method = "grouped"  # transitively linked within the page group
+            records.append(_record(cluster, "duplicate", canonical.cluster_id, method))
     records.sort(key=lambda record: record.cluster_id)
     return records
 
@@ -369,9 +463,12 @@ def write_dedup_table(staging_db_path: str, records: list[DedupRecord]) -> None:
         conn.close()
 
 
-def run_dedup(staging_db_path: str = settings.STAGING_DB_PATH) -> list[DedupRecord]:
-    """Read keep-candidates, label duplicates, write the dedup table (cluster-id order)."""
+def run_dedup(
+    staging_db_path: str = settings.STAGING_DB_PATH,
+    review_path: str = settings.DEDUP_REVIEW_CSV,
+) -> list[DedupRecord]:
+    """Read keep-candidates + the human-review ledger, label duplicates, write the table."""
     clusters = read_keep_candidates(staging_db_path)
-    records = build_dedup_records(clusters)
+    records = build_dedup_records(clusters, load_dedup_review(review_path))
     write_dedup_table(staging_db_path, records)
     return records

@@ -144,13 +144,17 @@ def stage_dedup():
     """Transform stage 3: collapse duplicate records of the same decision.
 
     Reads the scope keep-candidates and writes stg_cluster_dedup labeling each cluster
-    canonical or duplicate (dup_of), using scdb identity + caption + opinion-text overlap.
-    Label-only and non-destructive: stg_opinions is untouched, the 1:many hierarchy intact."""
+    canonical or duplicate (dup_of), using scdb identity + caption + opinion-text overlap,
+    plus the human-review ledger (dataset/dedup_review.csv) for adjudicated pairs the
+    automated gates cannot reach. Label-only and non-destructive: stg_opinions is
+    untouched, the 1:many hierarchy intact."""
     records = dedup.run_dedup()
     canonical = sum(1 for record in records if record.dedup_role == "canonical")
+    reviewed = sum(1 for record in records if record.dup_method == "human_review")
     print(
         f"dedup: {len(records)} keep-candidates -> {canonical} canonical / "
-        f"{len(records) - canonical} duplicate -> stg_cluster_dedup",
+        f"{len(records) - canonical} duplicate ({reviewed} via review ledger) "
+        f"-> stg_cluster_dedup",
         file=sys.stderr,
     )
     return records

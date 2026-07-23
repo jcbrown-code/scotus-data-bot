@@ -43,6 +43,10 @@ APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
 # override scope's automated rule (propose -> review -> execute). Built against V2/reference
 # data (an earlier V1 review artifact was retired as unreliable).
 SCOPE_REVIEW_CSV = os.path.join(DATASET_DIR, "scope_review.csv")
+# human-review ledger for dedup: same-decision pairs (cluster_id -> dup_of) a person adjudicated
+# against the reference and the record, authoritative above the automated passes (same
+# propose -> review -> execute pattern as SCOPE_REVIEW_CSV).
+DEDUP_REVIEW_CSV = os.path.join(DATASET_DIR, "dedup_review.csv")
 # authoritative per-volume case list (SCDB / Wikipedia by-volume ingest); the answer key the
 # validate stage reconciles the deduplicated KEEP set against, per U.S. Reports volume.
 CASE_NAME_REFERENCE_CSV = os.path.join(DATASET_DIR, "case_name_reference.csv")
