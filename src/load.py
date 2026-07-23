@@ -9,7 +9,6 @@ Inputs (see config.settings):
   raw_clusters.json (raw)        -> citations        (structured parallel cites)
   fulltext/<id>.json (raw)       -> opinions         (raw_html + plain_text + derived clean_text)
                                     + page_breaks     (star-pagination map, from src.clean)
-  review_dispositions.csv (set)  -> review_dispositions
 """
 
 import argparse
@@ -72,12 +71,6 @@ DDL = [
         char_offset INTEGER,
         anchor      TEXT,
         PRIMARY KEY (opinion_id, ordinal)
-    )""",
-    """CREATE TABLE review_dispositions (
-        cluster_id  INTEGER REFERENCES clusters(cluster_id),
-        disposition TEXT,
-        confidence  TEXT,
-        rationale   TEXT
     )""",
     """CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)""",
     """CREATE VIEW scotus_decisions AS
@@ -206,17 +199,6 @@ def _load_opinions(conn, ph, fulltext_dir):
     return len(out), len(breaks)
 
 
-def _load_dispositions(conn, ph, path):
-    if not os.path.exists(path):
-        return 0
-    out = [
-        (int(r["cluster_id"]), r.get("disposition"), r.get("confidence"), r.get("rationale"))
-        for r in csv.DictReader(open(path))
-    ]
-    conn.executemany(f"INSERT INTO review_dispositions VALUES ({','.join([ph] * 4)})", out)
-    return len(out)
-
-
 def _build_fts(conn, target):
     # Index the canonical clean_text. The canonical column stays strict NFC; the FTS index gets a
     # diacritic-folded projection for recall via the tokenizer (see docs/clean-text-design.md).
@@ -270,12 +252,10 @@ def build_db(
     all_clusters=None,
     raw_clusters=None,
     fulltext_dir=None,
-    dispositions=None,
 ):
     all_clusters = all_clusters or settings.ALL_CLUSTERS_CSV
     raw_clusters = raw_clusters or settings.RAW_CLUSTERS
     fulltext_dir = fulltext_dir or settings.FULLTEXT_DIR
-    dispositions = dispositions or settings.REVIEW_DISPOSITIONS_CSV
 
     conn, ph = _connect(target, path, dsn)
     for stmt in DDL:
@@ -283,7 +263,6 @@ def build_db(
     n_clusters = _load_clusters(conn, ph, all_clusters)
     n_citations, n_citation_dupes_dropped = _load_citations(conn, ph, target, raw_clusters)
     n_opinions, n_page_breaks = _load_opinions(conn, ph, fulltext_dir)
-    n_disp = _load_dispositions(conn, ph, dispositions)
     _build_fts(conn, target)
 
     cur = conn.execute("SELECT count(*) FROM scotus_decisions")
@@ -303,7 +282,6 @@ def build_db(
         "n_page_breaks": n_page_breaks,
         "n_citations": n_citations,
         "n_citation_dupes_dropped": n_citation_dupes_dropped,
-        "n_review_dispositions": n_disp,
     }
     _write_meta(conn, ph, counts)
     conn.commit()

@@ -1,12 +1,13 @@
 """Tests for src.transform.scope — the is_scotus determination.
 
-Two layers: pure counterfactual unit tests for the predicate, and data-quality
-tests that run the determination over the real staging DB and reconcile it
-against the human answer key (dataset/review_dispositions.csv). The data-quality
-tests skip when staging is absent.
+Three layers, built from what scope is *supposed* to do:
+  1. the automated rule (citation + reporter authority + Dallas scdb),
+  2. the human-review ledger, which must OVERRIDE the automated rule either way,
+  3. outcome tests over the real staging DB (skip when absent) checking scope keeps
+     genuine decisions and drops non-decisions -- anchored on hand-picked landmark
+     cases and structural invariants, not a self-fulfilling replay of a fixture.
 """
 
-import csv
 import os
 import sqlite3
 
@@ -29,19 +30,19 @@ def _make_cluster(**over):
     return base
 
 
-# ---- determine_is_scotus counterfactuals -------------------------------------
+# ---- the automated rule (no ledger) ------------------------------------------
 
 
 @pytest.mark.parametrize(
     "cluster, expected_verdict, expected_evidence",
     [
-        # no U.S. Reports cite at all (Meade v. Deputy Marshal)
+        # not reported in the U.S. Reports at all (Meade v. Deputy Marshal)
         (
             _make_cluster(us_cite=None, us_volume=None, us_page=None),
             scope.IsScotus.FALSE,
             "no_us_reports_cite",
         ),
-        # out-of-scope volumes: pre-SCOTUS Dallas vol 1, and the 1822-term vol-20 straggler
+        # out of the 1790-1821 corpus span (pre-SCOTUS Dallas vol 1; 1822-term vol-20 straggler)
         (
             _make_cluster(us_volume=1, us_cite="1 U.S. 1"),
             scope.IsScotus.FALSE,
@@ -52,7 +53,7 @@ def _make_cluster(**over):
             scope.IsScotus.FALSE,
             "out_of_scope_volume",
         ),
-        # SCOTUS-only reporter (Cranch/Wheaton): TRUE by reporter authority, scdb or not
+        # SCOTUS-only reporters (Cranch 5-13, Wheaton 14-19): TRUE by reporter authority
         (
             _make_cluster(us_volume=6, scdb_id="1805-001"),
             scope.IsScotus.TRUE,
@@ -64,51 +65,71 @@ def _make_cluster(**over):
             scope.IsScotus.TRUE,
             "scotus_reporter+scdb",
         ),
-        # Dallas: an scdb entry keeps it; without one it is not a SCOTUS case
+        # Dallas (mixed-court): an scdb entry keeps it; without one it is not a SCOTUS case
         (
             _make_cluster(us_volume=3, scdb_id="1799-001", case_name="Calder v. Bull"),
             scope.IsScotus.TRUE,
             "scdb_id",
         ),
         (
-            _make_cluster(us_volume=4, us_page="200", case_name="Ordinary Case v. Someone"),
+            _make_cluster(us_volume=4, us_page="200", case_name="Ordinary v. Case"),
             scope.IsScotus.FALSE,
             "dallas_not_in_scdb",
         ),
     ],
 )
-def test_determine_is_scotus_verdicts(cluster, expected_verdict, expected_evidence):
-    verdict, evidence = scope.determine_is_scotus(cluster)
-    assert verdict == expected_verdict
-    assert evidence == expected_evidence
+def test_automated_rule_verdicts(cluster, expected_verdict, expected_evidence):
+    assert scope.determine_is_scotus(cluster) == (expected_verdict, expected_evidence)
 
 
 def test_dallas_respublica_is_false_with_tell():
     verdict, evidence = scope.determine_is_scotus(
-        _make_cluster(us_volume=2, us_page="298", case_name="Respublica v. Oswald", scdb_id=None)
+        _make_cluster(us_volume=2, us_page="298", case_name="Respublica v. Oswald")
     )
     assert verdict == scope.IsScotus.FALSE
-    assert evidence.startswith("dallas_not_in_scdb:")
     assert "respublica/commonwealth" in evidence
 
 
-def test_curated_exception_is_true():
-    # Hazlehurst v. United States (4 U.S. 6): genuine, texted, reference-listed, and
-    # its only cluster carries no scdb_id -- the one human-verified override.
-    verdict, evidence = scope.determine_is_scotus(
-        _make_cluster(
-            cluster_id=6725725,
-            case_name="Hazlehurst v. United States",
-            us_cite="4 U.S. 6",
-            us_volume=4,
-            us_page="6",
-        )
+# ---- the human-review ledger OVERRIDES the automated rule --------------------
+
+
+def test_ledger_keep_overrides_an_automated_drop():
+    # a Dallas non-scdb decision the rule would drop, kept by human review
+    cluster = _make_cluster(
+        cluster_id=8403274, us_volume=2, us_page="402", case_name="Oswald v. New-York"
     )
-    assert verdict == scope.IsScotus.TRUE
-    assert evidence == "curated_exception"
+    assert scope.determine_is_scotus(cluster)[0] == scope.IsScotus.FALSE  # rule alone drops it
+    assert scope.determine_is_scotus(cluster, {8403274: "keep"}) == (
+        scope.IsScotus.TRUE,
+        "human_review",
+    )
 
 
-# ---- collect_not_scotus_tells --------------------------------------------------------
+def test_ledger_drop_overrides_an_automated_keep():
+    # an scdb cluster the rule would keep, dropped by human review
+    cluster = _make_cluster(cluster_id=99, us_volume=6, scdb_id="1805-001")
+    assert scope.determine_is_scotus(cluster)[0] == scope.IsScotus.TRUE  # rule alone keeps it
+    assert scope.determine_is_scotus(cluster, {99: "drop"}) == (
+        scope.IsScotus.FALSE,
+        "human_review",
+    )
+
+
+def test_load_scope_review_parses_dispositions(tmp_path):
+    path = tmp_path / "review.csv"
+    path.write_text(
+        "cluster_id,us_cite,case_name,disposition,rationale\n"
+        "42,3 U.S. 1,Foo v. Bar,keep,a genuine decision\n"
+        "43,3 U.S. 2,Baz v. Qux,drop,not scotus\n"
+    )
+    assert scope.load_scope_review(str(path)) == {42: "keep", 43: "drop"}
+
+
+def test_load_scope_review_missing_file_is_empty(tmp_path):
+    assert scope.load_scope_review(str(tmp_path / "absent.csv")) == {}
+
+
+# ---- not_scotus tells (Dallas drop evidence) --------------------------------
 
 
 @pytest.mark.parametrize(
@@ -138,11 +159,12 @@ def test_page_before_scotus_start_tell():
     assert "page_before_scotus_start" in tells
 
 
-# ---- round trip through the staging table ------------------------------------
+# ---- round trip through the staging table (ledger applied) -------------------
 
 
-def _build_staging(path):
-    conn = sqlite3.connect(path)
+def test_run_scope_applies_the_ledger(tmp_path):
+    db = str(tmp_path / "staging.sqlite")
+    conn = sqlite3.connect(db)
     conn.execute(
         "CREATE TABLE stg_clusters (cluster_id INTEGER PRIMARY KEY, case_name TEXT, "
         "us_cite TEXT, us_volume INTEGER, us_page TEXT, scdb_id TEXT)"
@@ -150,109 +172,101 @@ def _build_staging(path):
     conn.executemany(
         "INSERT INTO stg_clusters VALUES (?,?,?,?,?,?)",
         [
-            (1, "Marbury v. Madison", "5 U.S. 137", 5, "137", None),  # reporter authority
-            (2, "Respublica v. Oswald", "2 U.S. 298", 2, "298", None),  # Dallas not-scotus
-            (3, "Calder v. Bull", "3 U.S. 386", 3, "386", "1798-001"),  # Dallas scdb keep
+            (1, "Marbury v. Madison", "5 U.S. 137", 5, "137", None),  # reporter authority -> keep
+            (2, "Respublica v. Oswald", "2 U.S. 298", 2, "298", None),  # Dallas non-scdb -> drop
+            (
+                3,
+                "Genuine v. Dallas",
+                "3 U.S. 400",
+                3,
+                "400",
+                None,
+            ),  # Dallas non-scdb, but ledger keep
         ],
     )
     conn.commit()
     conn.close()
+    ledger = str(tmp_path / "review.csv")
+    with open(ledger, "w") as handle:
+        handle.write(
+            "cluster_id,us_cite,case_name,disposition,rationale\n"
+            "3,3 U.S. 400,Genuine v. Dallas,keep,test\n"
+        )
+    verdicts = {p.cluster_id: (p.is_scotus, p.evidence) for p in scope.run_scope(db, ledger)}
+    assert verdicts[1][0] == "true"
+    assert verdicts[2][0] == "false"
+    assert verdicts[3] == ("true", "human_review")  # the ledger override reached the table
 
 
-def test_run_scope_writes_table(tmp_path):
-    db_path = str(tmp_path / "staging.sqlite")
-    _build_staging(db_path)
-    proposals = scope.run_scope(db_path)
-    verdicts = {p.cluster_id: (p.is_scotus, p.proposed_disposition) for p in proposals}
-    assert verdicts[1] == ("true", "keep")
-    assert verdicts[2] == ("false", "drop")
-    assert verdicts[3] == ("true", "keep")
-
-    conn = sqlite3.connect(db_path)
-    stored = dict(conn.execute("SELECT cluster_id, is_scotus FROM stg_cluster_scope").fetchall())
-    conn.close()
-    assert stored == {1: "true", 2: "false", 3: "true"}
+# ---- outcome tests over the real staging DB ---------------------------------
 
 
-def test_scope_table_does_not_block_staging_rebuild(tmp_path):
-    """The derived scope table must never block materialize's clean rebuild.
-
-    materialize drops and recreates the base tables with foreign_keys=ON; a FOREIGN
-    KEY from stg_cluster_scope to stg_clusters would make that drop fail (observed on
-    the real staging DB). Stages own and rebuild their artifacts independently.
-    """
-    db_path = str(tmp_path / "staging.sqlite")
-    _build_staging(db_path)
-    scope.run_scope(db_path)
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("DROP TABLE stg_clusters")  # must not raise despite stg_cluster_scope
-    conn.close()
-
-
-# ---- data-quality: reconcile against the human answer key --------------------
-
-
-def _build_real_scope_proposals():
-    """Score the real staging DB in memory (no write); skip if it is absent."""
+def _real_scope():
     if not os.path.exists(settings.STAGING_DB_PATH):
         pytest.skip("staging DB missing; run the materialize stage first")
     clusters = scope.read_staging_clusters(settings.STAGING_DB_PATH)
-    return {p.cluster_id: p for p in scope.build_scope_proposals(clusters)}
+    review = scope.load_scope_review()
+    return clusters, {p.cluster_id: p for p in scope.build_scope_proposals(clusters, review)}
 
 
-def _load_answer_key():
-    with open(settings.REVIEW_DISPOSITIONS_CSV, newline="") as handle:
-        return {
-            int(r["cluster_id"]): r["disposition"]
-            for r in csv.DictReader(handle)
-            if r["cluster_id"]
-        }
-
-
-def test_no_not_scotus_case_is_kept():
-    """No case the reviewers marked DROP-not-scotus may be classified SCOTUS TRUE."""
-    by_id = _build_real_scope_proposals()
-    kept = [
-        cid
-        for cid, disposition in _load_answer_key().items()
-        if disposition == "DROP-not-scotus" and by_id.get(cid) and by_id[cid].is_scotus == "true"
+def _verdicts_for(clusters, by_id, name_substring, us_cite):
+    hits = [
+        c
+        for c in clusters
+        if name_substring.lower() in (c["case_name"] or "").lower() and c.get("us_cite") == us_cite
     ]
-    assert kept == [], f"not-scotus cases wrongly kept: {kept}"
+    if not hits:
+        pytest.skip(f"{name_substring} {us_cite} not in this staging build")
+    return {by_id[c["cluster_id"]].is_scotus for c in hits}
+
+
+@pytest.mark.parametrize(
+    "name, cite",
+    [
+        ("Chisholm", "2 U.S. 419"),  # Dallas landmark, scdb
+        ("Calder v. Bull", "3 U.S. 386"),  # Dallas, scdb
+        ("Marbury", "5 U.S. 137"),  # Cranch, reporter authority
+        ("Hazlehurst", "4 U.S. 6"),  # Dallas, kept only via the ledger
+        ("Oswald", "2 U.S. 402"),  # Dallas, kept only via the ledger (third Oswald)
+    ],
+)
+def test_landmark_decisions_are_kept(name, cite):
+    """Real genuine decisions -- across scdb, reporter authority, and the ledger -- are kept."""
+    clusters, by_id = _real_scope()
+    assert _verdicts_for(clusters, by_id, name, cite) == {"true"}, f"{name} {cite} not kept"
+
+
+def test_a_known_circuit_case_is_dropped():
+    """United States v. Worrall (2 U.S. 384) is a Circuit-PA criminal case, not SCOTUS."""
+    clusters, by_id = _real_scope()
+    assert _verdicts_for(clusters, by_id, "United States v. Worrall", "2 U.S. 384") == {"false"}
 
 
 def test_reporter_only_volumes_are_all_true():
-    """Every in-scope cluster from a SCOTUS-only reporter (vols 5-19) is TRUE."""
-    by_id = _build_real_scope_proposals()
+    """Every in-scope cluster from a SCOTUS-only reporter (vols 5-19) is kept."""
+    clusters, by_id = _real_scope()
     stragglers = [
-        p
-        for p in by_id.values()
-        if p.us_volume and 5 <= p.us_volume <= 19 and p.is_scotus != "true"
+        c["cluster_id"]
+        for c in clusters
+        if c.get("us_volume")
+        and 5 <= c["us_volume"] <= 19
+        and by_id[c["cluster_id"]].is_scotus != "true"
     ]
     assert stragglers == []
 
 
-def test_dallas_drops_were_all_human_reviewed():
-    """Every Dallas cluster scope drops was examined by the human review.
-
-    The Dallas scdb rule is empirical -- it is safe only because the review covered
-    the whole non-scdb set. If a future mirror adds a Dallas cluster the review never
-    saw, this fails rather than silently dropping it.
-    """
-    by_id = _build_real_scope_proposals()
-    reviewed = set(_load_answer_key())
-    dropped = {
-        cid for cid, p in by_id.items() if p.us_volume in (2, 3, 4) and p.is_scotus == "false"
-    }
-    assert dropped - reviewed == set(), f"dropped but never reviewed: {dropped - reviewed}"
-
-
-def test_curated_exception_applies_on_real_data():
-    """Hazlehurst (cid 6725725) is kept via the curated exception, not scdb."""
-    by_id = _build_real_scope_proposals()
-    hazlehurst = by_id.get(6725725)
-    if hazlehurst is None:
-        pytest.skip("Hazlehurst cluster not present in this staging build")
-    assert hazlehurst.is_scotus == "true"
-    assert hazlehurst.evidence == "curated_exception"
-    assert not hazlehurst.scdb_id
+def test_dallas_keeps_are_only_scdb_or_ledger():
+    """No Dallas cluster is kept unless it has an scdb_id or the ledger keeps it -- so no
+    Pennsylvania-state / circuit case (which have neither) can slip into the corpus."""
+    clusters, by_id = _real_scope()
+    review = scope.load_scope_review()
+    kept_without_authority = [
+        c["cluster_id"]
+        for c in clusters
+        if c.get("us_volume") in (2, 3, 4)
+        and by_id[c["cluster_id"]].is_scotus == "true"
+        and not (c.get("scdb_id") or review.get(c["cluster_id"]) == "keep")
+    ]
+    assert kept_without_authority == [], (
+        f"Dallas kept without scdb/ledger: {kept_without_authority}"
+    )

@@ -4,22 +4,25 @@ CourtListener's ``docket__court=scotus`` tag is imperfect -- it stamps ``scotus`
 on district, circuit, and state cases too (e.g. Meade v. Deputy Marshal, a
 district-of-Virginia habeas) -- and the HTML header "Supreme Court of United
 States" is stamped on every Dallas reprint, so neither can be trusted. The
-determination is binary and rests on two authorities:
+determination is binary. A human-review disposition (the ``dataset/scope_review.csv``
+ledger) is authoritative and overrides everything else -- propose -> review -> execute.
+Absent one, an automated rule decides, resting on two authorities:
 
 - **Reporter.** Cranch (vols 5-13) and Wheaton (14-19) were official SCOTUS-only
   reporters, so any in-scope cluster from vol 5 up is SCOTUS by the authority of
   the reporter it appears in. Dallas (2-4) covered three courts (PA state, U.S.
   Circuit-PA, and SCOTUS), so a Dallas citation alone proves nothing.
-- **SCDB, within Dallas.** An ``scdb_id`` (SCDB is a SCOTUS-only catalog) keeps a
-  Dallas cluster; without one the cluster is not a SCOTUS case. This rule is
-  empirical and Dallas-only: the completed human review (dataset/REVIEW_NOTES.md
-  + review_dispositions.csv) examined every one of the 205 non-scdb Dallas
-  clusters and found 168 PA-state/circuit cases, 3 administrative orders (a
-  decisions-only corpus excludes them), and 34 duplicate stubs whose genuine
-  twins survive via their own scdb clusters -- with the single exception curated
-  below. Do NOT generalize the rule past Dallas: CourtListener's scdb tagging is
-  incomplete in vols 5-19 (289 genuine clusters there carry no scdb_id), so
-  scdb-absence means "not SCOTUS" only where the review verified it.
+- **SCDB, within Dallas.** SCDB is a SCOTUS-only catalog, so an ``scdb_id`` keeps a
+  Dallas cluster with no further check. A non-scdb Dallas cluster is treated as
+  not-SCOTUS -- most are Pennsylvania-state or U.S. Circuit-PA cases -- unless the
+  scope_review ledger keeps it: a decision CourtListener failed to scdb-tag, which a
+  person verified against the authoritative per-volume reference
+  (``dataset/case_name_reference.csv``) and the record itself. The reference is the
+  authority for which Dallas cases are decisions; the validate stage reconciles the
+  corpus against it, so any decision the reference lists but scope drops surfaces there
+  for human review and is then recorded in the ledger. Do NOT generalize the rule past
+  Dallas: CourtListener's scdb tagging is incomplete in vols 5-19 (289 genuine clusters
+  there carry no scdb_id), where reporter authority keeps them instead.
 
 Deliberately out of scope here: matching captions against the per-volume
 reference list. That is fuzzy name matching -- a separate concern for the dedup
@@ -31,6 +34,7 @@ The stage is propose-only and non-destructive: it labels each cluster with an
 (keep / drop). Nothing is deleted here.
 """
 
+import csv
 import sqlite3
 from enum import Enum
 from typing import NamedTuple
@@ -50,18 +54,9 @@ FIRST_SCOTUS_ONLY_VOLUME = 5
 # West v. Barnes); earlier pages are Pennsylvania cases. A corroborating tell only.
 DALLAS_SCOTUS_START_PAGE = 401
 
-# Human-verified overrides of the Dallas scdb rule, keyed by cluster_id. Each entry
-# is a genuine SCOTUS decision whose ONLY CourtListener record carries no scdb_id,
-# verified case-by-case against the per-volume reference list and the record's text.
-# Kept deliberately tiny and explicit -- an exception here must name its evidence.
-CURATED_SCOTUS_EXCEPTIONS = {
-    # In the reference list (vol 4 p6); its one cluster has real Harvard text (a
-    # short writ-of-error report) and no scdb twin exists anywhere in the mirror.
-    # review_dispositions.csv mislabels it "DROP-duplicate: stub/placeholder" -- it
-    # has no duplicate and is not textless. v1 dropped it, which is why the shipped
-    # corpus counted 13 vol-4 cases against the reference's 14.
-    6725725: "Hazlehurst v. United States, 4 U.S. 6 (1799)",
-}
+# Human-review dispositions recognized in the ledger (dataset/scope_review.csv).
+REVIEW_KEEP = "keep"
+REVIEW_DROP = "drop"
 
 
 class IsScotus(str, Enum):
@@ -116,8 +111,17 @@ def collect_not_scotus_tells(cluster: dict) -> str:
     return ";".join(tells)
 
 
-def determine_is_scotus(cluster: dict) -> tuple[IsScotus, str]:
-    """Classify one cluster as SCOTUS TRUE / FALSE with an evidence string."""
+def determine_is_scotus(cluster: dict, review: dict | None = None) -> tuple[IsScotus, str]:
+    """Classify one cluster as SCOTUS TRUE / FALSE with an evidence string.
+
+    A human-review disposition (``review``: cluster_id -> "keep"/"drop", from the
+    scope_review ledger) is authoritative and overrides the automated rule."""
+    disposition = (review or {}).get(cluster.get("cluster_id"))
+    if disposition == REVIEW_KEEP:
+        return IsScotus.TRUE, "human_review"
+    if disposition == REVIEW_DROP:
+        return IsScotus.FALSE, "human_review"
+
     if cluster.get("us_cite") is None:
         return IsScotus.FALSE, "no_us_reports_cite"  # not in the U.S. Reports at all (Meade)
 
@@ -130,12 +134,10 @@ def determine_is_scotus(cluster: dict) -> tuple[IsScotus, str]:
             return IsScotus.TRUE, "scotus_reporter+scdb"
         return IsScotus.TRUE, "scotus_only_reporter"
 
-    # Dallas (2-4), mixed-court: an scdb entry (or a curated, human-verified
-    # exception) keeps it; everything else is not a SCOTUS case (see module doc).
+    # Dallas (2-4), mixed-court: an scdb entry keeps it; a genuine non-scdb decision is
+    # kept only via the human-review ledger (handled above); everything else drops.
     if cluster.get("scdb_id"):
         return IsScotus.TRUE, "scdb_id"
-    if cluster.get("cluster_id") in CURATED_SCOTUS_EXCEPTIONS:
-        return IsScotus.TRUE, "curated_exception"
     tells = collect_not_scotus_tells(cluster)
     return IsScotus.FALSE, f"dallas_not_in_scdb:{tells}" if tells else "dallas_not_in_scdb"
 
@@ -153,11 +155,11 @@ class ScopeProposal(NamedTuple):
     proposed_disposition: str
 
 
-def build_scope_proposals(clusters: list[dict]) -> list[ScopeProposal]:
+def build_scope_proposals(clusters: list[dict], review: dict | None = None) -> list[ScopeProposal]:
     """Apply the determination to every cluster (pure; no I/O)."""
     proposals = []
     for cluster in clusters:
-        verdict, evidence = determine_is_scotus(cluster)
+        verdict, evidence = determine_is_scotus(cluster, review)
         proposals.append(
             ScopeProposal(
                 cluster_id=cluster["cluster_id"],
@@ -171,6 +173,21 @@ def build_scope_proposals(clusters: list[dict]) -> list[ScopeProposal]:
             )
         )
     return proposals
+
+
+def load_scope_review(review_path: str = settings.SCOPE_REVIEW_CSV) -> dict[int, str]:
+    """Load the human-review ledger: cluster_id -> disposition ("keep"/"drop").
+
+    Absent file is an empty ledger (the automated rule then stands for every cluster)."""
+    review: dict[int, str] = {}
+    try:
+        with open(review_path, newline="") as handle:
+            for row in csv.DictReader(handle):
+                if row.get("cluster_id"):
+                    review[int(row["cluster_id"])] = row["disposition"].strip()
+    except FileNotFoundError:
+        pass
+    return review
 
 
 def read_staging_clusters(staging_db_path: str) -> list[dict]:
@@ -221,12 +238,15 @@ def write_scope_table(staging_db_path: str, proposals: list[ScopeProposal]) -> N
         conn.close()
 
 
-def run_scope(staging_db_path: str = settings.STAGING_DB_PATH) -> list[ScopeProposal]:
-    """Read staging, classify every cluster, write the scope table.
+def run_scope(
+    staging_db_path: str = settings.STAGING_DB_PATH,
+    review_path: str = settings.SCOPE_REVIEW_CSV,
+) -> list[ScopeProposal]:
+    """Read staging + the human-review ledger, classify every cluster, write the table.
 
     Returns the proposals in cluster-id order.
     """
     clusters = read_staging_clusters(staging_db_path)
-    proposals = build_scope_proposals(clusters)
+    proposals = build_scope_proposals(clusters, load_scope_review(review_path))
     write_scope_table(staging_db_path, proposals)
     return proposals

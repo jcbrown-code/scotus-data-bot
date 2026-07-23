@@ -50,7 +50,10 @@ KEEP_CSV = os.path.join(DATASET_DIR, "keep.csv")
 MANIFEST_CSV = os.path.join(DATASET_DIR, "fulltext_manifest.csv")
 # committed snapshot of reporter-apparatus coverage (which clusters carry which apparatus kinds)
 APPARATUS_MANIFEST_CSV = os.path.join(DATASET_DIR, "apparatus_manifest.csv")
-REVIEW_DISPOSITIONS_CSV = os.path.join(DATASET_DIR, "review_dispositions.csv")
+# human-review ledger: dispositions a person adjudicated against the reference/record that
+# override scope's automated rule (propose -> review -> execute). Built against V2/reference
+# data (an earlier V1 review artifact was retired as unreliable).
+SCOPE_REVIEW_CSV = os.path.join(DATASET_DIR, "scope_review.csv")
 
 # database artifacts
 DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.sqlite"))
