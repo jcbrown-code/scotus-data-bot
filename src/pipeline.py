@@ -23,7 +23,7 @@ from collections import Counter
 
 from config import settings
 from src import apparatus, extract, load, mirror, transform_legacy
-from src.transform import dedup, materialize, scope
+from src.transform import dedup, materialize, scope, validate
 
 
 def _write_csv(path, cols, rows):
@@ -152,6 +152,18 @@ def stage_dedup():
         file=sys.stderr,
     )
     return records
+
+
+def stage_validate():
+    """Transform stage 4: reconcile the deduplicated KEEP set against the reference.
+
+    Per-volume (primary) and per-year (secondary) acceptance check over the final corpus
+    (U.S. vols 2-18; vol 19 is buffer, excluded). Writes stg_validate_volume / _detail and a
+    committed dataset/validate_report.csv, and prints the report. Read-only on corpus data."""
+    results = validate.run_validate()
+    keep = validate.read_canonical_keep(settings.STAGING_DB_PATH)
+    print(validate.format_report(results, keep, settings.WIKI_ANNUAL), file=sys.stderr)
+    return results
 
 
 def stage_clusters(from_cache=False, validate=False):
@@ -341,6 +353,7 @@ def main():
             "materialize",
             "scope",
             "dedup",
+            "validate",
             "clusters",
             "text",
             "load",
@@ -370,6 +383,8 @@ def main():
         stage_scope()
     if args.stage == "dedup":
         stage_dedup()
+    if args.stage == "validate":
+        stage_validate()
     if args.stage in ("clusters", "all"):
         stage_clusters(from_cache=args.from_cache, validate=args.validate)
     if args.stage in ("text", "all"):
