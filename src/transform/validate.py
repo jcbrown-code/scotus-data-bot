@@ -75,25 +75,48 @@ _VOLUME_NAME_THRESHOLD = 0.72  # no page support; name must carry it
 _DUPLICATE_NAME_THRESHOLD = 0.7  # an extra this close to a matched name is a duplicate
 
 
-def canonicalize_name(name: str) -> str:
-    """Distinctive-token string: lowercase, m'->mc, drop possessive/roman/stop/descriptor."""
+def canonical_tokens(name: str) -> set[str]:
+    """Distinctive token set: lowercase, m'->mc, drop possessive/roman/stop/descriptor."""
     text = (name or "").lower().replace("m'", "mc")
     text = re.sub(r"'s\b", "", text)
-    tokens = [
+    return {
         word
         for word in re.sub(r"[^a-z0-9 ]", " ", text).split()
         if word not in _STOP_WORDS
         and word not in _DESCRIPTOR_WORDS
         and word not in _ROMAN_NUMERALS
         and len(word) > 1
-    ]
-    return "".join(sorted(set(tokens)))
+    }
+
+
+def canonicalize_name(name: str) -> str:
+    """Distinctive-token string form of a caption (for fuzzy sequence comparison)."""
+    return "".join(sorted(canonical_tokens(name)))
 
 
 def score_name_similarity(left: str, right: str) -> float:
     """Fuzzy similarity in [0, 1] between two captions after canonicalization."""
     a, b = canonicalize_name(left), canonicalize_name(right)
     return difflib.SequenceMatcher(None, a, b).ratio() if a and b else 0.0
+
+
+def score_page_match(reference_name: str, cluster_name: str) -> float:
+    """Same-page (phase 1) score: the fuzzy ratio, lifted by reference-token containment.
+
+    Reference names are abbreviated forms of the full captions ("Henry v. Ball" for
+    "Negress Sally Henry, by William Henry, Her Father and Next Friend v. Ball"), so a
+    symmetric fuzzy ratio under-scores verbose captions. When every distinctive token
+    of the reference name appears in the caption, containment carries the score. Two
+    guards keep it conservative: it needs 2+ reference tokens (one-token ship names
+    stay on the ratio), and it applies only where the page already pins the case —
+    the name is disambiguating within a page, not identifying across a volume."""
+    ratio = score_name_similarity(reference_name, cluster_name)
+    reference_tokens = canonical_tokens(reference_name)
+    if len(reference_tokens) < 2:
+        return ratio
+    cluster_tokens = canonical_tokens(cluster_name)
+    containment = len(reference_tokens & cluster_tokens) / len(reference_tokens)
+    return max(ratio, containment)
 
 
 class ReferenceCase(NamedTuple):
@@ -121,7 +144,11 @@ class VolumeReconciliation(NamedTuple):
 
 
 def match_volume_to_reference(reference_cases: list, clusters: list) -> VolumeReconciliation:
-    """Match one volume's canonical clusters to its reference cases (page then name)."""
+    """Match one volume's canonical clusters to its reference cases (page then name).
+
+    Phase 1 scores with score_page_match (fuzzy ratio lifted by reference-token
+    containment — the page pins the case); phase 2's volume-wide fallback uses the
+    plain ratio only, since without page support the name must carry identity."""
     matched: dict[int, ReferenceCase] = {}
     reference_done: set[int] = set()
     matched_pages: set[str] = set()
@@ -138,7 +165,7 @@ def match_volume_to_reference(reference_cases: list, clusters: list) -> VolumeRe
         candidates = [c for c in clusters_by_page.get(page, []) if c.cluster_id not in matched]
         scored = sorted(
             (
-                (score_name_similarity(reference_cases[i].name, c.case_name), i, c)
+                (score_page_match(reference_cases[i].name, c.case_name), i, c)
                 for i in indexes
                 for c in candidates
             ),

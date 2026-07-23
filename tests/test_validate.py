@@ -40,6 +40,35 @@ def test_score_similarity_tolerates_spelling():
     )
 
 
+# ---- score_page_match (containment lift, phase 1 only) -----------------------
+
+
+def test_page_match_containment_lifts_verbose_captions():
+    """A reference name fully contained in a verbose caption scores 1.0 on a page."""
+    score = validate.score_page_match(
+        "Henry v. Ball",
+        "Negress Sally Henry, by William Henry, Her Father and Next Friend v. Ball",
+    )
+    assert score == 1.0
+
+
+def test_page_match_single_token_reference_stays_on_ratio():
+    """One-token ship names get no containment lift (any caption sharing the word
+    would score 1.0), so they stay on the fuzzy ratio."""
+    reference, caption = "The Mary", "The MARY, Stafford, Mastf"
+    assert validate.score_page_match(reference, caption) == validate.score_name_similarity(
+        reference, caption
+    )
+
+
+def test_page_match_gives_no_lift_to_unrelated_names():
+    """Zero shared tokens -> containment contributes nothing beyond the ratio."""
+    reference, caption = "Shepherd v. Hampton", "Houston v. Moore"
+    assert validate.score_page_match(reference, caption) == validate.score_name_similarity(
+        reference, caption
+    )
+
+
 # ---- match_volume_to_reference ----------------------------------------------
 
 
@@ -136,6 +165,17 @@ def test_volume_4_reconciles_fully():
     result = next(r for r in _real_results() if r.volume == 4)
     assert result.n_reference == 14
     assert result.missing == [], f"vol 4 missing: {[c.name for c in result.missing]}"
+
+
+def test_corpus_reconciles_exactly_against_the_reference():
+    """The standing invariant after residue adjudication: every volume reconciles
+    case-for-case — 648 kept = 648 referenced = 648 matched, no missing, no extras."""
+    results = _real_results()
+    assert sum(r.n_keep for r in results) == 648
+    assert sum(r.n_reference for r in results) == 648
+    assert sum(r.n_matched for r in results) == 648
+    unclean = {r.volume: (len(r.missing), len(r.extras)) for r in results if r.missing or r.extras}
+    assert unclean == {}, f"volumes with residue: {unclean}"
 
 
 def test_report_csv_matches_reconciliation():
