@@ -54,6 +54,8 @@ CASE_NAME_REFERENCE_CSV = os.path.join(DATASET_DIR, "case_name_reference.csv")
 VALIDATE_REPORT_CSV = os.path.join(DATASET_DIR, "validate_report.csv")
 
 # database artifacts
+# the shipped corpus database, built by the load stage from the staging DB (see src/load.py)
+DB_PATH = os.environ.get("SCOTUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus.sqlite"))
 # separate, optional apparatus asset (ATTACH-able, keyed on cluster_id); core DB stays untouched
 APPARATUS_DB_PATH = os.environ.get(
     "SCOTUS_APPARATUS_DB_PATH", os.path.join(PROCESSED_DIR, "scotus-apparatus.sqlite")
