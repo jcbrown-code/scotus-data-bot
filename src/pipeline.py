@@ -1,17 +1,18 @@
-"""Pipeline orchestrator: extract -> transform -> load.
+"""Pipeline orchestrator: one stage per invocation (stages are never chained in one job).
 
-Stages (run one or `all`):
-  clusters  : fetch SCOTUS clusters (or --from-cache), filter + dedup, write staging CSVs.
-  text      : fetch opinion text for the KEEP set (resumable, paced), write fulltext + manifest.
-  load      : build the SQLite database from the staging files.
-  all       : clusters -> text -> load.
+Extract / raw mirror:
+  extract        : mirror clusters + opinions VERBATIM into data/raw/ (needs the API token).
+  package-mirror : build the raw-mirror release archive + committed CHECKSUMS ledger.
+  fetch-mirror   : download + verify the raw-mirror Release asset, unpack into data/raw/.
+
+Transform (each reads/writes the staging DB; run in order, separately):
+  materialize -> scope -> dedup -> validate -> reselect -> clean
+
   apparatus : build the optional reporter-apparatus asset (scotus-apparatus.sqlite); separate
-              pull, keyed on cluster_id, leaves the core DB untouched. NOT part of `all`.
+              pull, keyed on cluster_id, leaves the core DB untouched.
 
 Network stages need COURTLISTENER_API_TOKEN; run via:
-    agentsecrets env -- python -m src.pipeline --stage all --validate
-Reprocess without network (data already cached on disk):
-    python -m src.pipeline --stage all --from-cache --validate
+    agentsecrets env -- python -m src.pipeline --stage extract
 """
 
 import argparse
@@ -22,7 +23,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, load, mirror, transform_legacy
+from src import apparatus, extract, mirror
 from src.transform import clean_opinions, dedup, materialize, reselect, scope, validate
 
 
@@ -37,8 +38,8 @@ def _write_csv(path, cols, rows):
 def stage_extract():
     """Extract: mirror clusters + opinions VERBATIM into data/raw/{clusters,opinions}/.
 
-    Decision-independent — scope is `docket__court=scotus` only, all buckets, full API fields, no
-    reshaping. Opinions are fetched for EVERY cluster (not just KEEP). Writes the run manifest and
+    Decision-independent — scope is `docket__court=scotus` only, every cluster, full API fields,
+    no reshaping. Opinions are fetched for EVERY cluster, kept or not. Writes the run manifest and
     runs cheap coverage/orphan integrity checks over the mirror."""
     settings.ensure_dirs()
     manifest = extract.extract(
@@ -122,12 +123,13 @@ def stage_materialize():
 
 
 def stage_scope():
-    """Transform stage 2: propose, per cluster, whether it is a genuine SCOTUS decision.
+    """Transform stage 2: propose, per cluster, whether it is a SCOTUS decision.
 
-    Reads the staging DB, adjudicates via reporter authority (Cranch/Wheaton were SCOTUS-only)
-    and, within Dallas, scdb_id + the curated exceptions, and writes the derived stg_cluster_scope
-    table (is_scotus + evidence + proposed disposition). Propose-only and non-destructive: nothing
-    is dropped here; a later stage executes the dispositions."""
+    Reads the staging DB and the human-review ledger (dataset/scope_review.csv, authoritative),
+    adjudicates the rest via reporter authority (Cranch/Wheaton were SCOTUS-only) and, within
+    Dallas, scdb_id, and writes the derived stg_cluster_scope table (is_scotus + evidence +
+    proposed disposition). Propose-only and non-destructive: nothing is dropped here; a later
+    stage executes the dispositions."""
     proposals = scope.run_scope()
     counts = Counter(proposal.is_scotus for proposal in proposals)
     print(
@@ -142,13 +144,17 @@ def stage_dedup():
     """Transform stage 3: collapse duplicate records of the same decision.
 
     Reads the scope keep-candidates and writes stg_cluster_dedup labeling each cluster
-    canonical or duplicate (dup_of), using scdb identity + caption + opinion-text overlap.
-    Label-only and non-destructive: stg_opinions is untouched, the 1:many hierarchy intact."""
+    canonical or duplicate (dup_of), using scdb identity + caption + opinion-text overlap,
+    plus the human-review ledger (dataset/dedup_review.csv) for adjudicated pairs the
+    automated gates cannot reach. Label-only and non-destructive: stg_opinions is
+    untouched, the 1:many hierarchy intact."""
     records = dedup.run_dedup()
     canonical = sum(1 for record in records if record.dedup_role == "canonical")
+    reviewed = sum(1 for record in records if record.dup_method == "human_review")
     print(
         f"dedup: {len(records)} keep-candidates -> {canonical} canonical / "
-        f"{len(records) - canonical} duplicate -> stg_cluster_dedup",
+        f"{len(records) - canonical} duplicate ({reviewed} via review ledger) "
+        f"-> stg_cluster_dedup",
         file=sys.stderr,
     )
     return records
@@ -157,12 +163,12 @@ def stage_dedup():
 def stage_validate():
     """Transform stage 4: reconcile the deduplicated KEEP set against the reference.
 
-    Per-volume (primary) and per-year (secondary) acceptance check over the final corpus
-    (U.S. vols 2-18; vol 19 is buffer, excluded). Writes stg_validate_volume / _detail and a
-    committed dataset/validate_report.csv, and prints the report. Read-only on corpus data."""
+    Per-volume acceptance check over the final corpus (U.S. vols 2-18; vol 19 is buffer,
+    excluded) against dataset/case_name_reference.csv. Writes stg_validate_volume / _detail
+    and a committed dataset/validate_report.csv, and prints the report. Read-only on corpus
+    data."""
     results = validate.run_validate()
-    keep = validate.read_canonical_keep(settings.STAGING_DB_PATH)
-    print(validate.format_report(results, keep, settings.WIKI_ANNUAL), file=sys.stderr)
+    print(validate.format_report(results), file=sys.stderr)
     return results
 
 
@@ -201,121 +207,6 @@ def stage_clean():
         file=sys.stderr,
     )
     return cleaned
-
-
-def stage_clusters(from_cache=False, validate=False):
-    settings.ensure_dirs()
-    if from_cache and os.path.exists(settings.RAW_CLUSTERS):
-        raw = json.load(open(settings.RAW_CLUSTERS))
-        print(f"loaded {len(raw)} raw clusters from cache", file=sys.stderr)
-    else:
-        token = settings.get_token()
-        print(f"fetching clusters {settings.AFTER}..{settings.BEFORE}", file=sys.stderr)
-        raw = extract.fetch_clusters(settings.AFTER, settings.BEFORE, token)
-        json.dump(raw, open(settings.RAW_CLUSTERS, "w"))
-        print(f"cached {len(raw)} raw clusters", file=sys.stderr)
-
-    recs = transform_legacy.assign_dedup(transform_legacy.classify(raw))
-    recs.sort(key=lambda x: (x["dateFiled"], int(x["cluster_id"])))
-    keep = [r for r in recs if r["bucket"] == "KEEP" and r["dedup_role"] == "canonical"]
-    review = [r for r in recs if r["bucket"] == "REVIEW" and r["dedup_role"] == "canonical"]
-    dupes = [r for r in recs if r["dedup_role"] == "duplicate"]
-
-    cols = settings.CLUSTER_COLS
-    _write_csv(settings.ALL_CLUSTERS_CSV, cols, recs)
-    _write_csv(settings.REVIEW_CSV, cols, review)
-    _write_csv(settings.DUPLICATES_CSV, cols, dupes)
-    _write_csv(settings.KEEP_CSV, cols, keep)  # committed snapshot
-
-    print(
-        f"clusters={len(recs)} keep={len(keep)} review={len(review)} "
-        f"duplicates={len(dupes)} (Harvard-U dupes "
-        f"{sum(1 for d in dupes if d['source'] == 'U')})"
-    )
-    if validate:
-        _validate(keep)
-    return keep
-
-
-def _validate(keep):
-    yk = Counter(int(r["dateFiled"][:4]) for r in keep if r["dateFiled"])
-    print("\nyear | keep | wiki |  Δ")
-    tc = tw = 0
-    for y in range(1791, 1821):
-        c, w = yk.get(y, 0), settings.WIKI_ANNUAL[y]
-        tc += c
-        tw += w
-        print(f"{y} | {c:>4} | {w:>4} | {c - w:+d}")
-    print(f"TOT  | {tc:>4} | {tw:>4} | {tc - tw:+d}")
-
-
-def stage_text(limit=0):
-    settings.ensure_dirs()
-    if not os.path.exists(settings.KEEP_CSV):
-        sys.exit("ERROR: keep.csv missing — run the 'clusters' stage first.")
-    headers = None  # fetched lazily, so a fully-cached rebuild needs no token
-    rows = list(csv.DictReader(open(settings.KEEP_CSV)))
-    if limit:
-        rows = rows[:limit]
-    manifest, failures, done, skip, fail = [], [], 0, 0, 0
-
-    for i, r in enumerate(rows, 1):
-        cid = r["cluster_id"]
-        out = os.path.join(settings.FULLTEXT_DIR, f"{cid}.json")
-        if os.path.exists(out):
-            j = json.load(open(out))
-            manifest.append({k: j.get(k) for k in settings.MANIFEST_COLS})
-            skip += 1
-            continue
-        if headers is None:
-            headers = extract.build_headers(settings.get_token())
-        try:
-            api_ops = extract.fetch_opinions(cid, headers)
-        except Exception as e:
-            print(f"  [{i}] cluster {cid} FAILED: {e}", file=sys.stderr)
-            failures.append({"cluster_id": cid, "caseName": r["caseName"], "error": str(e)})
-            fail += 1
-            continue
-        ops = [transform_legacy.opinion_record(o) for o in api_ops]
-        total = sum(o["char_count"] for o in ops)
-        rec = {
-            "cluster_id": cid,
-            "caseName": r["caseName"],
-            "us_cite": r["us_cite"],
-            "dateFiled": r["dateFiled"],
-            "scdb_id": r.get("scdb_id", ""),
-            "source": r.get("source", ""),
-            "n_opinions": len(ops),
-            "total_chars": total,
-            "text_sources": ";".join(sorted({o["text_source"] for o in ops if o["text_source"]})),
-            "opinions": ops,
-        }
-        json.dump(rec, open(out, "w"))
-        manifest.append({k: rec[k] for k in settings.MANIFEST_COLS})
-        done += 1
-        if i % 25 == 0 or limit:
-            print(f"  [{i}/{len(rows)}] {cid} {r['caseName'][:32]} chars={total}", file=sys.stderr)
-        import time
-
-        time.sleep(extract.PACE["delay"])
-
-    _write_csv(settings.MANIFEST_CSV, settings.MANIFEST_COLS, manifest)  # committed snapshot
-    # Durable per-run failure log — a KEEP decision missing text is a data gap, so it must
-    # be recorded, not left in stderr only.
-    _write_csv(settings.FAILURES_CSV, ["cluster_id", "caseName", "error"], failures)
-    empty = sum(1 for m in manifest if (m["total_chars"] or 0) == 0)
-    print(f"text: fetched={done} skipped={skip} failed={fail} | textless={empty}")
-    if failures:
-        print(f"  {len(failures)} text-fetch failures logged -> {settings.FAILURES_CSV}")
-
-
-def stage_load():
-    settings.ensure_dirs()
-    conn, counts = load.build_db("sqlite", path=settings.DB_PATH)
-    print(f"loaded sqlite database at {settings.DB_PATH}")
-    for k, v in counts.items():
-        print(f"  {k:24} {v}")
-    conn.close()
 
 
 def stage_apparatus(from_cache=False):
@@ -383,6 +274,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--stage",
+        required=True,
         choices=[
             "extract",
             "package-mirror",
@@ -393,23 +285,16 @@ def main():
             "validate",
             "reselect",
             "clean",
-            "clusters",
-            "text",
-            "load",
             "apparatus",
-            "all",
         ],
-        default="all",
     )
     ap.add_argument(
-        "--from-cache", action="store_true", help="reprocess cached clusters, no network"
+        "--from-cache",
+        action="store_true",
+        help="apparatus stage: use the cached pull, no network",
     )
-    ap.add_argument("--validate", action="store_true", help="compare per-year KEEP vs Wikipedia")
-    ap.add_argument("--limit", type=int, default=0, help="text stage: only first N clusters")
     args = ap.parse_args()
 
-    # 'extract' is the new decision-independent raw mirror; separate from the legacy 'clusters'/
-    # 'text' fetch path, which will be migrated to read from the mirror. NOT part of 'all' yet.
     if args.stage == "extract":
         stage_extract()
     if args.stage == "package-mirror":
@@ -428,13 +313,6 @@ def main():
         stage_reselect()
     if args.stage == "clean":
         stage_clean()
-    if args.stage in ("clusters", "all"):
-        stage_clusters(from_cache=args.from_cache, validate=args.validate)
-    if args.stage in ("text", "all"):
-        stage_text(limit=args.limit)
-    if args.stage in ("load", "all"):
-        stage_load()
-    # 'apparatus' is a separate, optional asset — deliberately NOT part of 'all'.
     if args.stage == "apparatus":
         stage_apparatus(from_cache=args.from_cache)
 

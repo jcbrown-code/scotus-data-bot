@@ -1,3 +1,4 @@
 cluster_id,us_cite,case_name,disposition,rationale
-6725725,4 U.S. 6,Hazlehurst v. United States,keep,Genuine 1799 writ-of-error decision; listed in case_name_reference at 4 U.S. 6 with real Harvard text and no scdb twin anywhere in the mirror; CourtListener never assigned an scdb_id.
-8403274,2 U.S. 402,Oswald v. New-York,keep,Genuine Aug-1792 procedural decision; the third distinct Oswald v. New York in 2 Dall. (after 401 and 415); listed in case_name_reference at 2 U.S. 402 with real (long-s OCR) text; CourtListener never assigned an scdb_id.
+6725725,4 U.S. 6,Hazlehurst v. United States,keep,1799 writ-of-error decision; listed in case_name_reference at 4 U.S. 6 with real Harvard text and no scdb twin anywhere in the mirror; CourtListener never assigned an scdb_id.
+8403274,2 U.S. 402,Oswald v. New-York,keep,Aug-1792 procedural decision; the third distinct Oswald v. New York in 2 Dall. (after 401 and 415); listed in case_name_reference at 2 U.S. 402 with real (long-s OCR) text; CourtListener never assigned an scdb_id.
+8403290,3 U.S. 410,Ex parte Hallowell,keep,Feb-1799 attorney-admission transfer decision; listed in case_name_reference at 3 U.S. 410 (year 1799 matches date_filed 1799-02-15) with real (long-s OCR) Harvard text; CourtListener never assigned an scdb_id.

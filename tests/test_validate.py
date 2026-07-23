@@ -1,7 +1,8 @@
 """Tests for src.transform.validate — reconcile the KEEP set against the reference.
 
-Pure unit tests for the matcher, plus a data-quality test over the real staging DB
-(skipped when absent) that guards the v1 fixes the report is meant to confirm.
+Pure unit tests for the matcher, plus data-quality tests over the real staging DB
+(skipped when absent) that pin the reconciliation outcomes the report is meant to
+confirm.
 """
 
 import csv
@@ -36,6 +37,35 @@ def test_score_similarity_tolerates_spelling():
     assert (
         validate.score_name_similarity("Van Staphorst v. Maryland", "Vanstophorst v. Maryland")
         > 0.75
+    )
+
+
+# ---- score_page_match (containment lift, phase 1 only) -----------------------
+
+
+def test_page_match_containment_lifts_verbose_captions():
+    """A reference name fully contained in a verbose caption scores 1.0 on a page."""
+    score = validate.score_page_match(
+        "Henry v. Ball",
+        "Negress Sally Henry, by William Henry, Her Father and Next Friend v. Ball",
+    )
+    assert score == 1.0
+
+
+def test_page_match_single_token_reference_stays_on_ratio():
+    """One-token ship names get no containment lift (any caption sharing the word
+    would score 1.0), so they stay on the fuzzy ratio."""
+    reference, caption = "The Mary", "The MARY, Stafford, Mastf"
+    assert validate.score_page_match(reference, caption) == validate.score_name_similarity(
+        reference, caption
+    )
+
+
+def test_page_match_gives_no_lift_to_unrelated_names():
+    """Zero shared tokens -> containment contributes nothing beyond the ratio."""
+    reference, caption = "Shepherd v. Hampton", "Houston v. Moore"
+    assert validate.score_page_match(reference, caption) == validate.score_name_similarity(
+        reference, caption
     )
 
 
@@ -128,11 +158,24 @@ def test_corpus_is_volumes_2_to_18_only():
 
 
 def test_volume_4_reconciles_fully():
-    """v1 shipped 13 cases for 4 U.S. against the reference's 14 (dropped Hazlehurst).
-    v2 must reconcile 14/14 with no missing case -- the concrete v1 fix."""
+    """Volume 4 must reconcile 14/14 against the reference, Hazlehurst included.
+
+    An scdb-only Dallas rule silently drops Hazlehurst (CourtListener never assigned
+    it an scdb_id); the scope_review ledger keeps it, and this pins that outcome."""
     result = next(r for r in _real_results() if r.volume == 4)
     assert result.n_reference == 14
     assert result.missing == [], f"vol 4 missing: {[c.name for c in result.missing]}"
+
+
+def test_corpus_reconciles_exactly_against_the_reference():
+    """The standing invariant after residue adjudication: every volume reconciles
+    case-for-case — 648 kept = 648 referenced = 648 matched, no missing, no extras."""
+    results = _real_results()
+    assert sum(r.n_keep for r in results) == 648
+    assert sum(r.n_reference for r in results) == 648
+    assert sum(r.n_matched for r in results) == 648
+    unclean = {r.volume: (len(r.missing), len(r.extras)) for r in results if r.missing or r.extras}
+    assert unclean == {}, f"volumes with residue: {unclean}"
 
 
 def test_report_csv_matches_reconciliation():
