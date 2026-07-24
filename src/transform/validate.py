@@ -37,9 +37,10 @@ from typing import NamedTuple
 
 from config import settings
 
-# Final V2 corpus span. Vol 19 is a staging buffer, reported apart and not counted.
-CORPUS_MIN_VOLUME = 2
-CORPUS_MAX_VOLUME = 18
+# Final V2 corpus span (single-sourced in settings; vol 19 is a staging buffer,
+# reported apart and not counted).
+CORPUS_MIN_VOLUME = settings.CORPUS_MIN_VOLUME
+CORPUS_MAX_VOLUME = settings.CORPUS_MAX_VOLUME
 BUFFER_VOLUME = 19
 
 # Name-matching vocabulary and thresholds (ported from the validated checker).

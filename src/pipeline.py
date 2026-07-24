@@ -8,6 +8,9 @@ Extract / raw mirror:
 Transform (each reads/writes the staging DB; run in order, separately):
   materialize -> scope -> dedup -> validate -> reselect -> clean
 
+Load:
+  load : build the shipped scotus.sqlite from the staging DB (blank-slate rebuild).
+
   apparatus : build the optional reporter-apparatus asset (scotus-apparatus.sqlite); separate
               pull, keyed on cluster_id, leaves the core DB untouched.
 
@@ -23,7 +26,7 @@ import sys
 from collections import Counter
 
 from config import settings
-from src import apparatus, extract, mirror
+from src import apparatus, extract, load, mirror
 from src.transform import clean_opinions, dedup, materialize, reselect, scope, validate
 
 
@@ -209,6 +212,20 @@ def stage_clean():
     return cleaned
 
 
+def stage_load():
+    """Load: build the shipped scotus.sqlite from the staging DB.
+
+    Requires every Transform stage to have run (fails loudly naming the missing
+    stage otherwise). Blank-slate rebuild; ships all clusters + all opinion rows
+    fully labeled, corpus text + offset spans, FTS, and the scotus_decisions view."""
+    settings.ensure_dirs()
+    counts = load.build_db()
+    print(f"load: built {settings.DB_PATH}", file=sys.stderr)
+    for key, value in counts.items():
+        print(f"  {key:26} {value}", file=sys.stderr)
+    return counts
+
+
 def stage_apparatus(from_cache=False):
     """Build the optional reporter-apparatus asset (scotus-apparatus.sqlite).
 
@@ -285,6 +302,7 @@ def main():
             "validate",
             "reselect",
             "clean",
+            "load",
             "apparatus",
         ],
     )
@@ -313,6 +331,8 @@ def main():
         stage_reselect()
     if args.stage == "clean":
         stage_clean()
+    if args.stage == "load":
+        stage_load()
     if args.stage == "apparatus":
         stage_apparatus(from_cache=args.from_cache)
 
