@@ -67,6 +67,12 @@ STAGING_DB_PATH = os.environ.get(
 )
 
 # ---- run parameters --------------------------------------------------------
+# Final V2 corpus span in U.S. Reports volumes. Vol 19 is a staging buffer (extracted so a
+# year-filter edge case cannot be dropped) and is excluded from the corpus; validate and
+# load both key on this span, so it lives here as the single source of truth.
+CORPUS_MIN_VOLUME = 2
+CORPUS_MAX_VOLUME = 18
+
 AFTER = os.environ.get("SCOTUS_AFTER", "1790-01-01")
 # Generous upper bound (1821, not 1820): date_filed carries term-vs-decision-date drift, so a hard
 # 1820 cutoff can silently clip a vol-18 (5 Wheat) case decided in early 1821. Extract mirrors this

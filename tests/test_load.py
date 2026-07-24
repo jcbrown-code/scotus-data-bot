@@ -205,20 +205,128 @@ def built(tmp_path):
     conn.close()
 
 
+# ---- unit: derive_corpus_status (the pure composition) ------------------------
+
+
+@pytest.mark.parametrize(
+    "is_scotus, dedup_role, us_volume, expected",
+    [
+        (1, "canonical", 5, "included"),
+        (1, "canonical", 19, "outside_volume"),
+        (1, "duplicate", 5, "duplicate"),
+        (1, "duplicate", 19, "duplicate"),  # a duplicate's own volume is irrelevant
+        (0, None, 4, "not_scotus"),
+        (0, None, None, "not_scotus"),
+    ],
+)
+def test_derive_corpus_status(is_scotus, dedup_role, us_volume, expected):
+    assert load.derive_corpus_status(is_scotus, dedup_role, us_volume) == expected
+
+
+@pytest.mark.parametrize(
+    "is_scotus, dedup_role, us_volume, match",
+    [
+        (1, None, 5, "no dedup verdict"),  # SCOTUS row dedup never saw
+        (0, "canonical", 4, "carries a dedup verdict"),  # non-SCOTUS with dedup output
+        (0, "duplicate", 4, "carries a dedup verdict"),
+        (1, "canonical", None, "no U.S. Reports volume"),  # impossible upstream
+    ],
+)
+def test_derive_corpus_status_rejects_impossible_states(is_scotus, dedup_role, us_volume, match):
+    with pytest.raises(ValueError, match=match):
+        load.derive_corpus_status(is_scotus, dedup_role, us_volume)
+
+
 # ---- unit: the loader's contract ---------------------------------------------
 
 
 def test_everything_ships_labeled(built):
     conn, counts = built
-    assert counts["n_clusters"] == 4 and counts["n_opinions"] == 5
+    assert counts["n_clusters_total"] == 4 and counts["n_opinions"] == 5
     labels = {
         row[0]: row[1:]
-        for row in conn.execute("SELECT cluster_id, is_scotus, dedup_role, dup_of FROM clusters")
+        for row in conn.execute(
+            "SELECT cluster_id, is_scotus, dedup_role, dup_of, corpus_status FROM clusters"
+        )
     }
-    assert labels[1] == ("true", "canonical", None)
-    assert labels[2] == ("true", "duplicate", 1)
-    assert labels[3] == ("false", None, None)  # scope-dropped: no dedup row, shipped anyway
-    assert labels[4] == ("true", "canonical", None)
+    assert labels[1] == (1, "canonical", None, "included")
+    assert labels[2] == (1, "duplicate", 1, "duplicate")
+    assert labels[3] == (0, None, None, "not_scotus")  # no dedup row; shipped anyway
+    assert labels[4] == (1, "canonical", None, "outside_volume")  # vol-19 buffer
+
+
+def test_conservation_of_clusters(built):
+    _, counts = built
+    partition = (
+        counts["n_clusters_included"]
+        + counts["n_clusters_outside_volume"]
+        + counts["n_clusters_duplicate"]
+        + counts["n_clusters_not_scotus"]
+    )
+    assert partition == counts["n_clusters_total"] == 4
+    assert counts["n_decisions"] == counts["n_clusters_included"]
+
+
+@pytest.mark.parametrize(
+    "corrupt_sql, match",
+    [
+        # SCOTUS row dedup never saw
+        ("DELETE FROM stg_cluster_dedup WHERE cluster_id = 1", "no dedup verdict"),
+        # non-SCOTUS row carrying dedup output
+        (
+            "INSERT INTO stg_cluster_dedup VALUES "
+            "(3, 4, '9', 'Respublica v. Passmore', NULL, 'canonical', NULL, NULL)",
+            "carries a dedup verdict",
+        ),
+        # canonical SCOTUS row with no volume
+        (
+            "UPDATE stg_clusters SET us_volume = NULL WHERE cluster_id = 4",
+            "no U.S. Reports volume",
+        ),
+        # duplicate with a hole in its dup fields
+        (
+            "UPDATE stg_cluster_dedup SET dup_method = NULL WHERE cluster_id = 2",
+            "duplicate without dup_of/dup_method",
+        ),
+        # duplicate pointing at a missing target
+        (
+            "UPDATE stg_cluster_dedup SET dup_of = 999 WHERE cluster_id = 2",
+            "dup_of 999 is missing",
+        ),
+        # canonical carrying dup fields
+        (
+            "UPDATE stg_cluster_dedup SET dup_method = 'name' WHERE cluster_id = 1",
+            "non-duplicate carries",
+        ),
+        # a scope verdict outside the enum
+        (
+            "UPDATE stg_cluster_scope SET is_scotus = 'maybe' WHERE cluster_id = 1",
+            "unrecognized is_scotus",
+        ),
+    ],
+)
+def test_incomplete_upstream_state_fails_before_insertion(tmp_path, corrupt_sql, match):
+    staging = _make_staging(tmp_path)
+    conn = sqlite3.connect(staging)
+    conn.execute(corrupt_sql)
+    conn.commit()
+    conn.close()
+    with pytest.raises(RuntimeError, match=match):
+        load.build_db(staging, str(tmp_path / "out.sqlite"))
+
+
+def test_duplicate_chain_fails_before_insertion(tmp_path):
+    """duplicate -> duplicate -> canonical must be rejected; dup_of targets canonicals."""
+    staging = _make_staging(tmp_path)
+    conn = sqlite3.connect(staging)
+    conn.execute(
+        "UPDATE stg_cluster_dedup SET dedup_role='duplicate', dup_of=2, dup_method='name' "
+        "WHERE cluster_id = 4"
+    )
+    conn.commit()
+    conn.close()
+    with pytest.raises(RuntimeError, match="dup_of 2 is duplicate, not canonical"):
+        load.build_db(staging, str(tmp_path / "out.sqlite"))
 
 
 def test_view_exposes_exactly_the_corpus(built):
@@ -329,6 +437,56 @@ def test_full_artifact_counts(db):
     assert _one(db, "SELECT count(*) FROM scotus_decisions") == 648
     assert _one(db, "SELECT count(*) FROM opinions WHERE clean_text IS NOT NULL") == 674
     assert _one(db, "SELECT count(*) FROM clusters WHERE dup_method='human_review'") == 20
+
+
+def test_full_artifact_conservation(db):
+    """The four-way corpus_status partition is exhaustive and matches the meta counts."""
+    partition = dict(db.execute("SELECT corpus_status, count(*) FROM clusters GROUP BY 1"))
+    assert partition == {
+        "included": 648,
+        "outside_volume": 41,
+        "duplicate": 227,
+        "not_scotus": 204,
+    }
+    assert sum(partition.values()) == 1120
+    meta = dict(db.execute("SELECT key, value FROM meta"))
+    assert (
+        int(meta["n_clusters_included"])
+        + int(meta["n_clusters_outside_volume"])
+        + int(meta["n_clusters_duplicate"])
+        + int(meta["n_clusters_not_scotus"])
+        == int(meta["n_clusters_total"])
+        == 1120
+    )
+    assert int(meta["n_decisions"]) == int(meta["n_clusters_included"])
+
+
+def test_corpus_status_matches_independent_sql_recomputation(db):
+    """Recompute the composition in SQL, independently of derive_corpus_status —
+    the stored column and a from-scratch derivation must never disagree."""
+    mismatches = _one(
+        db,
+        "SELECT count(*) FROM clusters WHERE corpus_status IS NOT CASE "
+        "  WHEN is_scotus = 0 THEN 'not_scotus' "
+        "  WHEN dedup_role = 'duplicate' THEN 'duplicate' "
+        "  WHEN dedup_role = 'canonical' AND us_volume BETWEEN 2 AND 18 THEN 'included' "
+        "  WHEN dedup_role = 'canonical' THEN 'outside_volume' "
+        "END",
+    )
+    assert mismatches == 0
+
+
+def test_duplicate_targets_are_canonical_decisions(db):
+    """Release validation: every duplicate resolves to a canonical SCOTUS row (never a
+    missing row, a non-canonical, or another duplicate — no chains)."""
+    offenders = _one(
+        db,
+        "SELECT count(*) FROM clusters d LEFT JOIN clusters t ON t.cluster_id = d.dup_of "
+        "WHERE d.corpus_status = 'duplicate' AND (t.cluster_id IS NULL "
+        "  OR t.dedup_role != 'canonical' "
+        "  OR t.corpus_status NOT IN ('included', 'outside_volume'))",
+    )
+    assert offenders == 0
 
 
 def test_view_matches_the_committed_validate_report(db):

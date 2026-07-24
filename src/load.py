@@ -6,9 +6,15 @@ validate -> reselect -> clean) and rebuilds ``data/processed/scotus.sqlite`` fro
 blank slate. It makes no decisions: every label it ships was decided upstream.
 
 What ships, and why:
-- ALL 1,120 clusters, fully labeled (``is_scotus`` + ``scope_evidence``,
-  ``dedup_role`` + ``dup_of`` + ``dup_method``) — nothing is silently dropped; the
-  corpus is exposed by the ``scotus_decisions`` VIEW (canonical + scotus + vols 2-18).
+- ALL 1,120 clusters, fully labeled: the per-stage verdicts (``is_scotus`` +
+  ``scope_evidence``, ``dedup_role`` + ``dup_of`` + ``dup_method``) plus
+  ``corpus_status`` — the terminal disposition composed from them by
+  ``derive_corpus_status`` (a pure function; not a new decision). Its four values
+  partition the population exactly (included + outside_volume + duplicate +
+  not_scotus = total), and the loader validates every row's shape BEFORE insertion,
+  so an upstream-invariant violation fails the build instead of shipping mislabeled.
+  The corpus is the ``scotus_decisions`` VIEW (corpus_status = 'included') — the
+  handoff contract, so downstream analysis never re-derives scope/dedup/span logic.
 - ALL 1,160 opinion rows, so the 1:many cluster -> opinion hierarchy is visible for
   every cluster. Derived text (``clean_text`` + provenance) is populated only for the
   corpus opinions; elsewhere it is NULL (missing = NULL, never '').
@@ -38,8 +44,43 @@ _REQUIRED_STAGING = {
     "stg_meta": "materialize",
 }
 
+# Terminal corpus_status values: an exhaustive four-way partition of the population
+# (the conservation equation included + outside_volume + duplicate + not_scotus = total
+# is a tested contract).
+CORPUS_INCLUDED = "included"
+CORPUS_OUTSIDE_VOLUME = "outside_volume"
+CORPUS_DUPLICATE = "duplicate"
+CORPUS_NOT_SCOTUS = "not_scotus"
+
+
+def derive_corpus_status(is_scotus, dedup_role, us_volume):
+    """Compose the terminal disposition from the stage verdicts (pure; no I/O).
+
+    ``is_scotus`` is the published 0/1 flag; ``dedup_role`` is
+    'canonical' / 'duplicate' / None (dedup runs only on SCOTUS keep-candidates).
+    Raises ValueError on any combination the pipeline cannot legally produce; the
+    loader calls this before insertion so an upstream-invariant violation fails the
+    build. A duplicate's own volume is irrelevant here — corpus membership is
+    evaluated on canonicals (a duplicate's exclusion reason IS being a duplicate)."""
+    if not is_scotus:
+        if dedup_role is not None:
+            raise ValueError("non-SCOTUS cluster carries a dedup verdict")
+        return CORPUS_NOT_SCOTUS
+    if dedup_role == "duplicate":
+        return CORPUS_DUPLICATE
+    if dedup_role == "canonical":
+        if us_volume is None:
+            # scope guarantees a volume for every keep (no-cite clusters are dropped),
+            # so a canonical with no volume is an upstream failure, never a category
+            raise ValueError("canonical SCOTUS cluster with no U.S. Reports volume")
+        if settings.CORPUS_MIN_VOLUME <= us_volume <= settings.CORPUS_MAX_VOLUME:
+            return CORPUS_INCLUDED
+        return CORPUS_OUTSIDE_VOLUME
+    raise ValueError("SCOTUS cluster with no dedup verdict")
+
+
 DDL = [
-    """CREATE TABLE clusters (
+    f"""CREATE TABLE clusters (
         cluster_id          INTEGER PRIMARY KEY,
         case_name           TEXT NOT NULL,
         case_name_full      TEXT,
@@ -52,11 +93,30 @@ DDL = [
         citation_count      INTEGER,
         precedential_status TEXT,
         n_opinions          INTEGER,
-        is_scotus           TEXT NOT NULL,
+        is_scotus           INTEGER NOT NULL CHECK (is_scotus IN (0, 1)),
         scope_evidence      TEXT NOT NULL,
-        dedup_role          TEXT,
+        dedup_role          TEXT CHECK (dedup_role IS NULL
+                                        OR dedup_role IN ('canonical', 'duplicate')),
         dup_of              INTEGER REFERENCES clusters(cluster_id),
-        dup_method          TEXT
+        dup_method          TEXT,
+        corpus_status       TEXT NOT NULL CHECK (corpus_status IN
+            ('included', 'outside_volume', 'duplicate', 'not_scotus')),
+        CHECK (
+            (corpus_status = 'not_scotus' AND is_scotus = 0
+             AND dedup_role IS NULL AND dup_of IS NULL AND dup_method IS NULL)
+         OR (corpus_status = 'duplicate' AND is_scotus = 1
+             AND dedup_role = 'duplicate'
+             AND dup_of IS NOT NULL AND dup_method IS NOT NULL)
+         OR (corpus_status = 'included' AND is_scotus = 1
+             AND dedup_role = 'canonical' AND dup_of IS NULL AND dup_method IS NULL
+             AND us_volume BETWEEN {settings.CORPUS_MIN_VOLUME}
+                             AND {settings.CORPUS_MAX_VOLUME})
+         OR (corpus_status = 'outside_volume' AND is_scotus = 1
+             AND dedup_role = 'canonical' AND dup_of IS NULL AND dup_method IS NULL
+             AND us_volume IS NOT NULL
+             AND us_volume NOT BETWEEN {settings.CORPUS_MIN_VOLUME}
+                                 AND {settings.CORPUS_MAX_VOLUME})
+        )
     )""",
     """CREATE TABLE citations (
         cluster_id INTEGER NOT NULL REFERENCES clusters(cluster_id),
@@ -98,10 +158,14 @@ DDL = [
         PRIMARY KEY (opinion_id, ordinal)
     )""",
     """CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)""",
+    # The handoff contract: downstream analysis selects from this view and never
+    # re-derives scope, dedup, or volume-span logic.
     """CREATE VIEW scotus_decisions AS
-        SELECT * FROM clusters
-        WHERE dedup_role = 'canonical' AND is_scotus = 'true'
-          AND us_volume BETWEEN 2 AND 18""",
+        SELECT * FROM clusters WHERE corpus_status = 'included'""",
+    """CREATE VIEW duplicate_clusters AS
+        SELECT d.*, c.case_name AS canonical_case_name, c.us_cite AS canonical_us_cite
+        FROM clusters d JOIN clusters c ON c.cluster_id = d.dup_of
+        WHERE d.corpus_status = 'duplicate'""",
 ]
 
 
@@ -115,9 +179,23 @@ def _assert_staging_complete(staging):
         raise RuntimeError(f"staging DB is missing required tables: {need}")
 
 
+def _convert_is_scotus(cluster_id, value):
+    """Staging's TEXT enum -> the published 0/1 flag; anything else fails the build."""
+    if value == "true":
+        return 1
+    if value == "false":
+        return 0
+    raise RuntimeError(f"cluster {cluster_id}: unrecognized is_scotus value {value!r}")
+
+
 def _load_clusters(staging, out):
-    """Ship every cluster with its scope + dedup labels; canonicals before duplicates
-    so the self-referential dup_of foreign key always resolves."""
+    """Ship every cluster with its stage labels and terminal corpus_status.
+
+    Every row's shape is validated BEFORE insertion (derive_corpus_status raises on
+    impossible verdict combinations; the dup-field and dup-target checks below cover
+    the cross-row invariants), so incomplete upstream state fails the build rather
+    than shipping mislabeled rows. Canonicals insert before duplicates so the
+    self-referential dup_of foreign key always resolves."""
     rows = staging.execute(
         "SELECT c.cluster_id, c.case_name, c.case_name_full, c.us_cite, c.us_volume, "
         "c.us_page, c.date_filed, c.scdb_id, c.source, c.citation_count, "
@@ -128,8 +206,29 @@ def _load_clusters(staging, out):
         "LEFT JOIN stg_cluster_dedup d USING (cluster_id) "
         "ORDER BY (d.dup_of IS NOT NULL), c.cluster_id"
     ).fetchall()
-    out.executemany("INSERT INTO clusters VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
-    return len(rows)
+    dedup_role_by_id = {row[0]: row[14] for row in rows}
+    prepared = []
+    for row in rows:
+        cluster_id, us_volume = row[0], row[4]
+        dedup_role, dup_of, dup_method = row[14], row[15], row[16]
+        is_scotus = _convert_is_scotus(cluster_id, row[12])
+        try:
+            corpus_status = derive_corpus_status(is_scotus, dedup_role, us_volume)
+        except ValueError as error:
+            raise RuntimeError(f"cluster {cluster_id}: {error}") from error
+        if dedup_role == "duplicate":
+            if dup_of is None or dup_method is None:
+                raise RuntimeError(f"cluster {cluster_id}: duplicate without dup_of/dup_method")
+            target_role = dedup_role_by_id.get(dup_of) or "missing"
+            if target_role != "canonical":
+                raise RuntimeError(
+                    f"cluster {cluster_id}: dup_of {dup_of} is {target_role}, not canonical"
+                )
+        elif dup_of is not None or dup_method is not None:
+            raise RuntimeError(f"cluster {cluster_id}: non-duplicate carries dup_of/dup_method")
+        prepared.append(row[:12] + (is_scotus,) + row[13:] + (corpus_status,))
+    out.executemany("INSERT INTO clusters VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", prepared)
+    return len(prepared)
 
 
 def _load_citations(staging, out):
@@ -244,18 +343,24 @@ def build_db(
             n_ocr_suspects = _load_ocr_suspects(staging, out)
             _build_fts(out)
             n_decisions = out.execute("SELECT count(*) FROM scotus_decisions").fetchone()[0]
-            n_duplicates = out.execute(
-                "SELECT count(*) FROM clusters WHERE dedup_role = 'duplicate'"
-            ).fetchone()[0]
+            status_counts = dict(
+                out.execute("SELECT corpus_status, count(*) FROM clusters GROUP BY 1")
+            )
             n_review_folds = out.execute(
                 "SELECT count(*) FROM clusters WHERE dup_method = 'human_review'"
             ).fetchone()[0]
             counts = {
-                "n_clusters": n_clusters,
+                # the four-way partition; conservation (sum == total) is a tested contract
+                "n_clusters_total": n_clusters,
+                "n_clusters_included": status_counts.get(CORPUS_INCLUDED, 0),
+                "n_clusters_outside_volume": status_counts.get(CORPUS_OUTSIDE_VOLUME, 0),
+                "n_clusters_duplicate": status_counts.get(CORPUS_DUPLICATE, 0),
+                "n_clusters_not_scotus": status_counts.get(CORPUS_NOT_SCOTUS, 0),
+                # the headline number, counted through the VIEW as an independent path
+                # (a test asserts it equals n_clusters_included)
                 "n_decisions": n_decisions,
                 "n_opinions": n_opinions,
                 "n_corpus_opinions": n_corpus_opinions,
-                "n_duplicates": n_duplicates,
                 "n_review_ledger_folds": n_review_folds,
                 "n_citations": n_citations,
                 "n_citation_dupes_dropped": n_citation_dupes_dropped,

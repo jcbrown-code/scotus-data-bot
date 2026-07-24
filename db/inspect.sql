@@ -6,17 +6,18 @@
 SELECT '== BUILD PROVENANCE ==' AS section;
 SELECT key, value FROM meta ORDER BY key;
 
-SELECT '== TOTALS ==' AS section;
+SELECT '== TOTALS: the corpus_status partition (conservation: sums to total) ==' AS section;
+SELECT corpus_status, count(*) AS clusters
+FROM clusters GROUP BY corpus_status ORDER BY clusters DESC;
 SELECT
-  (SELECT count(*) FROM clusters)                                             AS clusters,
+  (SELECT count(*) FROM clusters)                                             AS clusters_total,
   (SELECT count(*) FROM scotus_decisions)                                     AS decisions,
-  (SELECT count(*) FROM clusters WHERE is_scotus='false')                     AS scope_dropped,
-  (SELECT count(*) FROM clusters WHERE dedup_role='duplicate')                AS duplicates,
   (SELECT count(*) FROM opinions)                                             AS opinions,
   (SELECT count(*) FROM opinions WHERE clean_text IS NOT NULL)                AS corpus_opinions,
   (SELECT count(*) FROM citations)                                            AS citations;
--- decisions is case-level (the scotus_decisions view); corpus_opinions is document-level —
--- seriatim cases carry several opinions per decision, so corpus_opinions >= decisions.
+-- decisions is case-level (the scotus_decisions view = corpus_status 'included');
+-- corpus_opinions is document-level — seriatim cases carry several opinions per
+-- decision, so corpus_opinions >= decisions.
 SELECT 'decisions = distinct cases (the view); corpus_opinions = opinion documents '
     || 'with derived text (seriatim cases have several)' AS note;
 
